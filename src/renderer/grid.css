@@ -1,0 +1,363 @@
+.grid-scroll {
+  --grid-template:
+    90px                /* Ignored */
+    100px               /* Date */
+    140px               /* Account */
+    150px               /* Merchant */
+    220px               /* Category */
+    100px               /* Amount */
+    minmax(260px, 1fr)  /* Statement (only flexible column) */
+    200px               /* Notes */
+    50px                /* Tags */
+    100px               /* Owner */
+    36px;               /* Delete */
+  --grid-min-width: 1446px;
+  height: calc(100vh - 180px);
+  overflow: auto;
+  border: 1px solid #ddd;
+  background: white;
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+}
+
+/* Suppress text selection while drag-copying a cell value. */
+.grid-dragging {
+  user-select: none;
+}
+
+.grid-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  margin-bottom: 8px;
+}
+
+.grid-filter-input {
+  flex: 1;
+  min-width: 120px;
+  max-width: 240px;
+  height: 28px;
+  box-sizing: border-box;
+  padding: 0 8px;
+  font: inherit;
+  font-size: 13px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.filter-range {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+.filter-range-label {
+  font-size: 12px;
+  color: #666;
+}
+
+.filter-range-input {
+  height: 28px;
+  box-sizing: border-box;
+  padding: 0 6px;
+  font: inherit;
+  font-size: 13px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.filter-range-amount {
+  width: 72px;
+}
+
+.filter-range-dash {
+  color: #999;
+}
+
+.grid-filter-input:focus,
+.filter-range-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.grid-filter-count {
+  font-size: 12px;
+  color: #666;
+  margin-left: auto;
+}
+
+.filter-clear-btn {
+  flex: none;
+  height: 28px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 12px;
+  color: #444;
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.filter-clear-btn:hover {
+  background: #e4e4e4;
+}
+
+.grid-header {
+  display: grid;
+  grid-template-columns: var(--grid-template);
+  min-width: var(--grid-min-width);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.header-cell {
+  height: 21px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #f5f5f5;
+  font-weight: 600;
+  padding: 0 8px;
+  border-bottom: 1px solid #ccc;
+}
+
+.header-label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-cell-amount .header-label {
+  text-align: right;
+}
+
+.sort-btn {
+  flex: none;
+  background: none;
+  border: none;
+  padding: 0 2px;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  color: #bbb;
+  border-radius: 3px;
+}
+
+.sort-btn:hover {
+  background: #e4e4e4;
+  color: #666;
+}
+
+.sort-btn-active {
+  color: #3b82f6;
+}
+
+.sort-priority {
+  font-size: 9px;
+  font-weight: 700;
+  vertical-align: super;
+  margin-right: 1px;
+}
+
+.grid-body {
+  position: relative;
+  min-width: var(--grid-min-width);
+}
+
+.grid-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 21px;
+  display: grid;
+  grid-template-columns: var(--grid-template);
+}
+
+/* Lift the row whose category is being edited so its suggestion dropdown
+   is not covered by the rows rendered below it. */
+.grid-row-editing {
+  z-index: 3;
+}
+
+/* Rows for records imported during this session — drawn bold so the user
+   can spot what just came in. Not persisted to disk: the flag lives only in
+   App state. */
+.grid-row-added {
+  font-weight: 700;
+}
+
+.cell {
+  height: 21px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  border-bottom: 1px solid #ccc;
+  position: relative;
+}
+
+.cell-content {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: text;
+}
+
+.cell-amount .cell-content {
+  text-align: right;
+}
+
+.cell-negative {
+  color: #c00;
+}
+
+.cell-overridden {
+  background: #fff7c2;
+}
+
+.cell-overridden .cell-content {
+  cursor: help;
+}
+
+.cell-ignored {
+  color: #999;
+  /* Gray fill about half as dark as the #999 text (half the distance from white). */
+  background: #e5e5e5;
+}
+
+/* Cells spanned by an in-progress drag-copy. */
+.cell-fill-target {
+  box-shadow: inset 0 0 0 2px #93c5fd;
+}
+
+/* The drag-copy handle: a small blue square in each cell's lower-right corner.
+   Hidden by default and revealed when the user hovers the cell, to keep the
+   grid quiet at rest. */
+.fill-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 7px;
+  height: 7px;
+  background: #2563eb;
+  cursor: ns-resize;
+  display: none;
+}
+
+.cell:hover .fill-handle {
+  display: block;
+}
+
+.cell-editing {
+  padding: 0;
+}
+
+.cell-edit-input {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0 8px;
+  font: inherit;
+  border: 2px solid #3b82f6;
+  background: white;
+  color: inherit;
+}
+
+.cell-edit-input.cell-amount {
+  text-align: right;
+}
+
+.cell-ignore-check {
+  margin: 0 auto;
+  cursor: pointer;
+}
+
+.cat-suggest {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 180px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #999;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.cat-suggest-item {
+  padding: 4px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cat-suggest-item:hover {
+  background: #f0f0f0;
+}
+
+.cat-suggest-item-active {
+  background: #3b82f6;
+  color: white;
+}
+
+.cat-suggest-item-active:hover {
+  background: #3b82f6;
+}
+
+.cell-delete {
+  justify-content: center;
+  padding: 0;
+}
+
+.delete-btn {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px 6px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.delete-btn:hover {
+  background: #fee;
+  color: #c00;
+}
+
+.tooltip {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 10;
+  background: white;
+  border: 1px solid #999;
+  padding: 8px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  cursor: default;
+  text-decoration: none;
+  color: #222;
+}
+
+.tooltip-original {
+  margin-bottom: 6px;
+}
+
+.tooltip button {
+  font-size: 12px;
+  padding: 3px 8px;
+  cursor: pointer;
+}

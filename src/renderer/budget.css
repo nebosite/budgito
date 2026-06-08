@@ -1,0 +1,653 @@
+.budget-panel {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
+  /* Confine scrolling to the inner grids — never the whole tab. */
+  overflow: hidden;
+}
+
+.budget-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.budget-select-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.budget-select-label select {
+  font: inherit;
+  font-size: 13px;
+  padding: 2px 6px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background: white;
+}
+
+.budget-range {
+  color: #666;
+  font-size: 12px;
+}
+
+/* "Bottom line" projection strip between the toolbar and the budget table.
+   Label and value sit adjacent at the left edge (unlike the bottom
+   transactions strip, which pushes them to opposite ends). */
+.budget-bottom-line {
+  flex: 0 0 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  margin-bottom: 10px;
+  background: #ededed;
+  border: 1px solid #ccc;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.budget-bottom-line-label {
+  color: #444;
+  font-weight: 600;
+}
+
+.budget-bottom-line-value {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.budget-bottom-line-value.amount-negative {
+  color: #c00;
+}
+
+.budget-empty {
+  margin: 0;
+  padding: 12px;
+  color: #666;
+  font-size: 13px;
+}
+
+/* Section 1: budget table — 66% of the tab height. */
+.budget-table-wrap {
+  flex: 0 0 66%;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #ccc;
+}
+
+/* Section 2: embedded transaction grid for the selected cell. Takes whatever
+   vertical space is left between sections 1 and 3. */
+.budget-edit {
+  flex: 1 1 0;
+  min-height: 0;
+  margin-top: 10px;
+  display: flex;
+}
+
+.budget-edit .grid-container {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.budget-edit .grid-scroll {
+  height: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.budget-hint {
+  margin: 0;
+  padding: 12px;
+  color: #666;
+  font-size: 13px;
+}
+
+/* Section 3: transactions total strip — fixed 40px. */
+.budget-total {
+  flex: 0 0 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  margin-top: 10px;
+  background: #ededed;
+  border: 1px solid #ccc;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.budget-total-label {
+  color: #444;
+  font-weight: 600;
+}
+
+.budget-total-value {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.budget-total-value.amount-negative {
+  color: #c00;
+}
+
+.budget-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  width: 100%;
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+}
+
+.budget-table th,
+.budget-table td {
+  height: 21px;
+  box-sizing: border-box;
+  padding: 0 8px;
+  border-right: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Column-header row sits one step darker than the section-header light blue
+   (#dbeafe) so it reads as the table's outermost frame. */
+.budget-table thead th {
+  background: #bfdbfe;
+  color: #1e3a8a;
+  font-weight: 600;
+  text-align: right;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* Category and Total columns get the section-header light blue across every
+   row (body + section totals). The thead rule above wins by row scope. */
+.budget-cat-col {
+  width: 200px;
+  text-align: left !important;
+  font-weight: 600;
+  background: #dbeafe;
+}
+
+.budget-month-col {
+  width: 78px;
+}
+
+.budget-total-col {
+  width: 96px;
+  text-align: right;
+  font-weight: 600;
+  background: #dbeafe;
+}
+
+/* Extra Discretionary-only columns (Remaining, Budgeted). The Income and
+   Bills sections leave these cells blank so the month columns stay aligned
+   across all three sections. */
+.budget-extra-col {
+  width: 96px;
+  text-align: right;
+}
+
+.budget-budgeted-cell {
+  cursor: text;
+}
+
+/* Non-zero Remaining values render bold; zero values stay regular weight so
+   the row reads quietly until there's something interesting to flag. */
+.budget-remaining-cell.budget-remaining-bold {
+  font-weight: 700;
+}
+
+/* Overspent Remaining (< -$1): red fill with bold yellow text. Overrides the
+   .budget-cell-negative color rule via specificity (this class wins because
+   it's applied alongside on the same element). */
+.budget-extra-col.budget-remaining-overspent {
+  background: #c00;
+  color: #ff0;
+  font-weight: 700;
+}
+
+/* Surplus Remaining (> Budgeted — typically from refunds outweighing
+   spending): green fill with bold white text. Wins over the default look
+   and over budget-remaining-bold via specificity. */
+.budget-extra-col.budget-remaining-surplus {
+  background: #1a7f37;
+  color: #fff;
+  font-weight: 700;
+}
+
+.budget-row th.budget-cat-col {
+  cursor: grab;
+}
+
+.budget-row:active th.budget-cat-col {
+  cursor: grabbing;
+}
+
+.budget-row[draggable='true']:hover th.budget-cat-col {
+  background: #bfdbfe;
+}
+
+/* Category name + two small "send to other section" buttons in the row head. */
+.budget-cat-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.budget-cat-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.budget-cat-buttons {
+  flex: none;
+  display: inline-flex;
+  gap: 2px;
+}
+
+.budget-jump-btn {
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  line-height: 1;
+  color: #1e3a8a;
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.budget-jump-btn:hover {
+  background: #dbeafe;
+}
+
+/* Removes the row from this budget only — the category itself is untouched. */
+.budget-delete-btn {
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  color: #999;
+  background: #f5f5f5;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.budget-delete-btn:hover {
+  background: #fee;
+  color: #c00;
+  border-color: #fbb;
+}
+
+.budget-cell {
+  text-align: right;
+  cursor: text;
+  position: relative;
+}
+
+/* Cells spanned by an in-progress horizontal drag-copy. Same blue inset as
+   the grid's vertical drag, so the gesture reads the same way visually. */
+.budget-cell-fill-target {
+  box-shadow: inset 0 0 0 2px #93c5fd;
+}
+
+/* Small blue square in the cell's lower-right corner that begins a
+   drag-copy. Hidden at rest, revealed on hover. ew-resize cursor since the
+   budget drag is horizontal-only (vs the grid's ns-resize vertical drag). */
+.budget-fill-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 7px;
+  height: 7px;
+  background: #2563eb;
+  cursor: ew-resize;
+  display: none;
+}
+
+.budget-cell:hover .budget-fill-handle {
+  display: block;
+}
+
+/* Suppress text selection while a drag-copy is in flight. */
+.budget-dragging {
+  user-select: none;
+}
+
+/* Page-facing-up indicator rendered in a cell's upper-left when a comment
+   exists. Uses the cell's existing position: relative anchor; the right-
+   aligned value text flows beneath it without overlap because the emoji
+   sits in the upper-left corner. */
+.budget-cell-has-comment::before {
+  content: '📄';
+  position: absolute;
+  top: 0;
+  left: 1px;
+  font-size: 10px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Floating comment editor anchored below the hovered cell. Positioned
+   `fixed` from BudgetView so it escapes the budget table's overflow
+   clipping. */
+.budget-comment-popup {
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  width: 240px;
+  background: white;
+  border: 1px solid #888;
+  border-radius: 4px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+}
+
+.budget-comment-textarea {
+  width: 100%;
+  height: 80px;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  resize: vertical;
+  font: inherit;
+  font-size: 13px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background: white;
+  color: #111;
+}
+
+/* Read-only display of the comment when the popup is in display mode. */
+.budget-comment-display {
+  min-height: 40px;
+  padding: 2px 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #111;
+  cursor: pointer;
+}
+
+.budget-comment-placeholder {
+  color: #888;
+  font-style: italic;
+}
+
+/* Over/under line that explains how spending compares to the budget cell. */
+.budget-comment-overunder {
+  padding-top: 4px;
+  border-top: 1px solid #eee;
+  color: #444;
+  font-size: 12px;
+}
+
+.budget-comment-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.budget-comment-clear {
+  align-self: flex-end;
+  font: inherit;
+  font-size: 12px;
+  padding: 3px 10px;
+  background: white;
+  color: #444;
+  border: 1px solid #bbb;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.budget-comment-clear:hover {
+  background: #fee;
+  color: #c00;
+  border-color: #fbb;
+}
+
+/* Negative numeric values (any cell, row total, section total) — red text. */
+.budget-cell-negative {
+  color: #c00;
+}
+
+/* Status backgrounds: applied to month cells based on the matching
+   transactions for the cell's (category, month). "empty" (no matches)
+   leaves the cell transparent. */
+.budget-cell-on-target {
+  background: #b6b6b6;
+}
+
+.budget-cell-under {
+  background: #d6f5d6;
+}
+
+.budget-cell-over {
+  background: #fad2cf;
+}
+
+/* The currently-selected cell. Uses an inset border instead of a background
+   so the status color underneath stays visible. */
+.budget-cell-selected {
+  box-shadow: inset 0 0 0 2px #3b82f6;
+  font-weight: 700;
+}
+
+.budget-cell-editing {
+  padding: 0;
+}
+
+.budget-cell-editing input {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0 8px;
+  font: inherit;
+  text-align: right;
+  border: 2px solid #3b82f6;
+  background: white;
+}
+
+/* Section header row (Income / Bills / Discretionary). */
+.budget-section-header th {
+  background: #dbeafe;
+  color: #1e3a8a;
+  font-weight: 700;
+  text-align: left;
+  padding: 4px 8px;
+}
+
+.budget-section-header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.budget-section-add {
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 2px 8px;
+  color: #1e3a8a;
+  background: white;
+  border: 1px solid #93c5fd;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.budget-section-add:hover {
+  background: #eff6ff;
+}
+
+/* Inline autocomplete shown after clicking "+ Add" in a section header. */
+.budget-section-adder {
+  position: relative;
+  display: inline-block;
+}
+
+.budget-section-adder-input {
+  font: inherit;
+  font-size: 12px;
+  padding: 2px 6px;
+  width: 180px;
+  border: 1px solid #93c5fd;
+  border-radius: 3px;
+  background: white;
+  color: #111;
+}
+
+.budget-section-suggest {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 5;
+  min-width: 100%;
+  max-height: 220px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #93c5fd;
+  border-top: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.budget-section-suggest-item {
+  padding: 3px 8px;
+  font-size: 12px;
+  color: #111;
+  font-weight: 400;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.budget-section-suggest-item:hover {
+  background: #eff6ff;
+}
+
+.budget-section-suggest-item-active {
+  background: #dbeafe;
+}
+
+/* Section totals row. */
+.budget-section-totals th,
+.budget-section-totals td {
+  background: #ededed;
+  font-weight: 700;
+}
+
+.budget-section-totals td {
+  text-align: right;
+}
+
+/* Keep the cat-col and total-col cells of the section totals row aligned
+   with the column color scheme (light blue) instead of the row's gray fill. */
+.budget-section-totals th.budget-cat-col,
+.budget-section-totals td.budget-total-col {
+  background: #dbeafe;
+}
+
+/* Spacer row between sections. */
+.budget-spacer td {
+  height: 8px;
+  background: transparent;
+  border-right: none;
+  border-bottom: none;
+}
+
+.budget-empty-row td {
+  color: #999;
+  font-style: italic;
+  text-align: center;
+  height: 28px;
+}
+
+/* "New Budget" modal. */
+.budget-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.budget-modal {
+  background: white;
+  width: min(420px, 92vw);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  padding: 18px 22px 16px;
+  font-family: system-ui, sans-serif;
+}
+
+.budget-modal-title {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+.budget-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.budget-modal-field input {
+  font: inherit;
+  font-size: 13px;
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+.budget-modal-error {
+  color: #c00;
+  font-size: 12px;
+}
+
+.budget-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.budget-modal-actions button {
+  font: inherit;
+  font-size: 13px;
+  padding: 4px 14px;
+  border: 1px solid #bbb;
+  border-radius: 3px;
+  background: white;
+  cursor: pointer;
+}
+
+.budget-modal-actions button:disabled {
+  color: #999;
+  cursor: default;
+}
+
+.budget-modal-actions button:not(:disabled):hover {
+  background: #f5f5f5;
+}
