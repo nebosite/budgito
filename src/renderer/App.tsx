@@ -7,10 +7,15 @@ import type {
   TransactionOverrides,
   TransactionRecord,
 } from '../shared/types'
-import { effectiveValue, renameCategoryInRecords } from '../shared/records'
+import {
+  canonicalRecordKey,
+  effectiveValue,
+  renameCategoryInRecords,
+} from '../shared/records'
 import { BudgetView, renameCategoryInBudget } from './budget'
 import { Grid } from './grid'
 import { HelpModal } from './help-modal'
+import { NewTransactionDialog } from './new-transaction-dialog'
 import { Report } from './report'
 import { SettingsView } from './settings'
 import './app.css'
@@ -46,6 +51,7 @@ export default function App(): JSX.Element {
   const [currentPath, setCurrentPath] = useState<string | null>(null)
   // Whether the in-app Help dialog (rendered README) is showing.
   const [helpOpen, setHelpOpen] = useState(false)
+  const [newTxOpen, setNewTxOpen] = useState(false)
   // Budgets live in the master file; track them in parallel with the records
   // and their savedRef so dirty considers both.
   const [budgets, setBudgets] = useState<Budget[]>([])
@@ -312,6 +318,27 @@ export default function App(): JSX.Element {
     apply((prev) => prev.filter((_, i) => i !== index))
   }
 
+  // Add a hand-entered transaction. The dialog's values become the record's
+  // immutable `original` (no overrides). It's prepended so it's visible at the
+  // top, flagged as session-added so it renders bold, and a novel category is
+  // registered like any other category that first appears on a record.
+  function handleAddTransaction(original: OriginalTransaction): void {
+    const record: TransactionRecord = {
+      key: canonicalRecordKey(original),
+      original,
+      overrides: {},
+      ignored: false,
+    }
+    apply((prev) => [record, ...prev])
+    setSessionAddedKeys((prev) => {
+      const next = new Set(prev)
+      next.add(record.key)
+      return next
+    })
+    if (original.category.trim() !== '') handleAddCategory(original.category.trim())
+    setNewTxOpen(false)
+  }
+
   // Drag-copy: write the source cell's value into every target record, as a
   // single undoable change.
   function handleFill(
@@ -396,6 +423,27 @@ export default function App(): JSX.Element {
       categories.filter((c) => usedCategoryKeys.has(c.trim().toLowerCase())),
     )
   }
+
+  // Distinct, sorted effective values of a text field across all records —
+  // used to populate the New-transaction dialog's merchant/account pickers.
+  function distinctValues(field: 'merchant' | 'account'): string[] {
+    const set = new Set<string>()
+    for (const r of history.present) {
+      const v = effectiveValue(r, field)
+      if (typeof v === 'string' && v.trim() !== '') set.add(v.trim())
+    }
+    return [...set].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
+  }
+  const knownMerchants = useMemo(
+    () => distinctValues('merchant'),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [history.present],
+  )
+  const knownAccounts = useMemo(
+    () => distinctValues('account'),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [history.present],
+  )
 
   /**
    * Rename a custom category and cascade the change to:
@@ -492,6 +540,7 @@ export default function App(): JSX.Element {
   // Shared by the Transactions and Report tabs (both edit transactions).
   const toolbar = (
     <div className="toolbar">
+      <button onClick={() => setNewTxOpen(true)}>New transaction</button>
       <button onClick={handleImport}>Import</button>
       <button onClick={() => void handleSave()} disabled={!dirty}>
         {dirty ? 'Save *' : 'Save'}
@@ -631,6 +680,15 @@ export default function App(): JSX.Element {
         />
       </div>
       {helpOpen && <HelpModal onClose={() => setHelpOpen(false)} />}
+      {newTxOpen && (
+        <NewTransactionDialog
+          categories={categories}
+          merchants={knownMerchants}
+          accounts={knownAccounts}
+          onAdd={handleAddTransaction}
+          onCancel={() => setNewTxOpen(false)}
+        />
+      )}
     </div>
   )
 }

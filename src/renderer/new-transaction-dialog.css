@@ -1,0 +1,109 @@
+.new-tx-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.new-tx-dialog {
+  background: white;
+  width: min(440px, 92vw);
+  max-height: 90vh;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: system-ui, sans-serif;
+}
+
+.new-tx-header {
+  padding: 10px 16px;
+  border-bottom: 1px solid #ddd;
+  background: #f5f5f5;
+}
+
+.new-tx-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.new-tx-body {
+  padding: 14px 16px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.new-tx-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.new-tx-label {
+  flex: none;
+  width: 130px;
+  font-size: 13px;
+  color: #444;
+}
+
+.new-tx-field input {
+  flex: 1;
+  height: 28px;
+  box-sizing: border-box;
+  padding: 0 8px;
+  font: inherit;
+  font-size: 13px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.new-tx-field input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.new-tx-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #ddd;
+  background: #fafafa;
+}
+
+.new-tx-btn {
+  height: 30px;
+  padding: 0 16px;
+  font: inherit;
+  font-size: 13px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+}
+
+.new-tx-btn-cancel {
+  color: #444;
+  background: #f0f0f0;
+}
+
+.new-tx-btn-cancel:hover {
+  background: #e4e4e4;
+}
+
+.new-tx-btn-add {
+  color: white;
+  background: #3b82f6;
+  border-color: #3b82f6;
+  font-weight: 600;
+}
+
+.new-tx-btn-add:hover {
+  background: #2f6fe0;
+}

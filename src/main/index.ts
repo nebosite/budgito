@@ -134,8 +134,6 @@ function buildMenu(getActiveWindow: () => BrowserWindow | null): void {
       ],
     },
     { role: 'editMenu' },
-    { role: 'viewMenu' },
-    { role: 'windowMenu' },
     {
       role: 'help',
       submenu: [
