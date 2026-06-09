@@ -13,7 +13,6 @@ export interface OriginalTransaction {
   notes: string
   amount: Amount
   tags: string
-  owner: string
 }
 
 /** User-supplied overrides. A missing key means "use the original value". */
@@ -26,7 +25,7 @@ export type TransactionOverrides = Partial<OriginalTransaction>
  * combination of date, merchant, account, originalStatement, notes, and
  * amount from the parsed original. The same logical transaction produces the
  * same key across import formats and across changes to ignored / category /
- * tag / owner fields.
+ * tag fields.
  *
  * `ignored` is set once: transfer detection runs on freshly-imported records
  * only, never re-evaluates existing records, and the user can toggle it

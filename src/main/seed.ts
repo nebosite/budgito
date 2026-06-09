@@ -24,7 +24,6 @@ export function makeSeedRecords(): TransactionRecord[] {
         notes: '',
         amount: -5.42,
         tags: '',
-        owner: 'Shared',
       },
       overrides: {
         category: 'Restaurants & Bars',
@@ -43,7 +42,6 @@ export function makeSeedRecords(): TransactionRecord[] {
         notes: '',
         amount: -42.10,
         tags: '',
-        owner: 'Shared',
       },
       overrides: {
         merchant: 'Shell Service Station',
@@ -62,7 +60,6 @@ export function makeSeedRecords(): TransactionRecord[] {
         notes: '',
         amount: -27.99,
         tags: '',
-        owner: '',
       },
       overrides: {
         merchant: 'Amazon',
@@ -82,7 +79,6 @@ export function makeSeedRecords(): TransactionRecord[] {
         notes: '',
         amount: 3500,
         tags: '',
-        owner: 'Shared',
       },
       overrides: {
         amount: 3450,
@@ -101,7 +97,6 @@ export function makeSeedRecords(): TransactionRecord[] {
         notes: '',
         amount: -78.30,
         tags: '',
-        owner: 'Shared',
       },
       overrides: {
         notes: 'Birthday dinner with family',

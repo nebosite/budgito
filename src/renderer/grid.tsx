@@ -48,7 +48,6 @@ const COLUMNS: Column[] = [
   { field: 'originalStatement', label: 'Statement', kind: 'text' },
   { field: 'notes', label: 'Notes', kind: 'text' },
   { field: 'tags', label: 'Tags', kind: 'text' },
-  { field: 'owner', label: 'Owner', kind: 'text' },
 ]
 
 /** Columns the free-text filter searches: every text-valued column. */

@@ -20,7 +20,6 @@ describe('parseMonarchCsv', () => {
       notes: '',
       amount: -29.82,
       tags: '',
-      owner: 'Shared',
     })
     expect(rows[0].raw).toBe(row)
   })

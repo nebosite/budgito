@@ -17,7 +17,6 @@ const REQUIRED_HEADERS = [
   'Notes',
   'Amount',
   'Tags',
-  'Owner',
 ] as const
 
 type RequiredHeader = (typeof REQUIRED_HEADERS)[number]
@@ -88,7 +87,6 @@ export function parseMonarchCsv(text: string): ParseResult {
         notes: fields[col('Notes')] ?? '',
         amount,
         tags: fields[col('Tags')] ?? '',
-        owner: fields[col('Owner')] ?? '',
       }
       rows.push({ raw, parsed })
     } catch (e) {

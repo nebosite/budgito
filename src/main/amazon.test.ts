@@ -35,7 +35,6 @@ describe('parseAmazonCsv', () => {
       notes: '',
       amount: -27.26,
       tags: '',
-      owner: '',
     })
     expect(rows[0].raw).toBe(row)
   })

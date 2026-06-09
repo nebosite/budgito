@@ -18,7 +18,6 @@ const DEFAULTS: OriginalTransaction = {
   notes: '',
   amount: -1,
   tags: '',
-  owner: '',
 }
 
 function row(partial: Partial<OriginalTransaction> = {}): ParsedRow {

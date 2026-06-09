@@ -6,7 +6,7 @@ import type { IsoDate, OriginalTransaction, TransactionRecord } from './types'
  * account, original statement, notes, and amount produce the same key — so
  * the same logical transaction dedupes across input formats (Monarch TSV,
  * Monarch CSV, Amazon CSV) and across export changes that touch other fields
- * (category, tags, owner).
+ * (category, tags).
  */
 export function canonicalRecordKey(original: OriginalTransaction): string {
   return [

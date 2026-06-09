@@ -23,7 +23,6 @@ function record(
       notes: '',
       amount: -1,
       tags: '',
-      owner: '',
       ...original,
     },
     overrides,

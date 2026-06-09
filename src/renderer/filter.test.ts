@@ -15,7 +15,6 @@ function rec(
     notes: '',
     amount: 0,
     tags: '',
-    owner: '',
   }
   return { key: JSON.stringify(original), original: { ...base, ...original }, overrides, ignored: false }
 }
@@ -53,9 +52,9 @@ describe('recordMatchesFilter', () => {
   })
 
   it('only searches the fields it is given', () => {
-    const r = rec({ owner: 'Alice' })
+    const r = rec({ tags: 'Alice' })
     expect(recordMatchesFilter(r, 'alice', FIELDS)).toBe(false)
-    expect(recordMatchesFilter(r, 'alice', ['owner'])).toBe(true)
+    expect(recordMatchesFilter(r, 'alice', ['tags'])).toBe(true)
   })
 })
 

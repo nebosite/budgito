@@ -43,7 +43,6 @@ describe('parseYnabCsv', () => {
       notes: 'popsicle molds',
       amount: -23.5,
       tags: 'Cleared',
-      owner: '',
     })
     expect(rows[0].raw).toBe(row)
   })

@@ -15,7 +15,6 @@ function rec(partial: Partial<OriginalTransaction>, ignored = false): Transactio
     notes: '',
     amount: -1,
     tags: '',
-    owner: '',
     ...partial,
   }
   return { key: canonicalRecordKey(original), original, overrides: {}, ignored }

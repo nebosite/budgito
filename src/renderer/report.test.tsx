@@ -44,7 +44,6 @@ function rec(partial: Partial<OriginalTransaction>, ignored = false): Transactio
     notes: '',
     amount: 0,
     tags: '',
-    owner: '',
     ...partial,
   }
   return { key: JSON.stringify(original), original, overrides: {}, ignored }

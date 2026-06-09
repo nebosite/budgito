@@ -1,5 +1,5 @@
 import { readFile } from 'fs/promises'
-import type { MasterFile } from '../shared/types'
+import type { MasterFile, TransactionRecord } from '../shared/types'
 import { saveWithBackup } from './atomic-write'
 
 const CURRENT_VERSION = 1
@@ -36,7 +36,25 @@ export async function loadMasterFile(path: string): Promise<MasterFile> {
       `Master file at ${path} has version ${parsed.version}; this app expects version ${CURRENT_VERSION}.`,
     )
   }
-  return parsed
+  return { ...parsed, records: parsed.records.map(dropRemovedFields) }
+}
+
+/**
+ * Strip fields that are no longer part of the record model from a loaded
+ * record. Older master files carry an `owner` field on `original` / overrides;
+ * we read those files fine but drop the field so it is not re-persisted on the
+ * next save. New code never writes `owner`, so this is a no-op for new files.
+ */
+function dropRemovedFields(record: TransactionRecord): TransactionRecord {
+  const original = { ...record.original } as Record<string, unknown>
+  delete original.owner
+  const overrides = { ...record.overrides } as Record<string, unknown>
+  delete overrides.owner
+  return {
+    ...record,
+    original: original as unknown as TransactionRecord['original'],
+    overrides: overrides as TransactionRecord['overrides'],
+  }
 }
 
 /**

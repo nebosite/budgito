@@ -46,7 +46,6 @@ export function looksLikeYnabCsv(headerLine: string): boolean {
  *   notes             = Memo
  *   amount            = Inflow - Outflow
  *   tags              = Cleared
- *   owner             = ""
  *
  * Whole-file problems (empty file, missing required column) throw; per-row
  * problems (unparseable date) are collected so import can continue.
@@ -106,7 +105,6 @@ export function parseYnabCsv(text: string): ParseResult {
         notes: fields[col('memo')] ?? '',
         amount,
         tags: fields[col('cleared')] ?? '',
-        owner: '',
       }
       rows.push({ raw, parsed })
     } catch (e) {

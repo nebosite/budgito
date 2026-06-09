@@ -38,6 +38,41 @@ describe('loadMasterFile', () => {
     await writeFile(path, JSON.stringify({ version: 1, records: null }), 'utf8')
     await expect(loadMasterFile(path)).rejects.toThrow(/expected shape/i)
   })
+
+  it('loads an older file with an owner field without error and drops it', async () => {
+    const path = join(dir, 'master.json')
+    await writeFile(
+      path,
+      JSON.stringify({
+        version: 1,
+        records: [
+          {
+            key: 'k',
+            original: {
+              date: '2026-05-08',
+              merchant: 'Netflix',
+              category: 'subs',
+              account: 'A',
+              originalStatement: 'NETFLIX',
+              notes: '',
+              amount: -29.82,
+              tags: '',
+              owner: 'Shared',
+            },
+            overrides: { owner: 'Eric' },
+            ignored: false,
+          },
+        ],
+      }),
+      'utf8',
+    )
+
+    const loaded = await loadMasterFile(path)
+    expect(loaded.records[0].original).not.toHaveProperty('owner')
+    expect(loaded.records[0].overrides).not.toHaveProperty('owner')
+    // Other fields survive untouched.
+    expect(loaded.records[0].original.merchant).toBe('Netflix')
+  })
 })
 
 describe('saveMasterFile + loadMasterFile', () => {
@@ -52,7 +87,6 @@ describe('saveMasterFile + loadMasterFile', () => {
       notes: '',
       amount: -29.82,
       tags: '',
-      owner: 'Shared',
     },
     overrides: {},
     ignored: false,

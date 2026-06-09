@@ -15,7 +15,6 @@ function rec(
     notes: '',
     amount: 0,
     tags: '',
-    owner: '',
   }
   return {
     key: JSON.stringify({ ...base, ...original }),

@@ -63,7 +63,6 @@ function makeRecord(partial: {
     originalStatement: '',
     notes: '',
     tags: '',
-    owner: '',
   }
   return {
     key: canonicalRecordKey(original),

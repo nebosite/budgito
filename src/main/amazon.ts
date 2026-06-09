@@ -29,7 +29,7 @@ export function looksLikeAmazonCsv(headerLine: string): boolean {
  *   category            = "unknown"
  *   account             = "amazon"
  *   originalStatement   = items
- *   notes / tags / owner = ""
+ *   notes / tags        = ""
  *   amount              = refund - gift - total
  *
  * Whole-file problems (empty file, missing required column) throw; per-row
@@ -91,7 +91,6 @@ export function parseAmazonCsv(text: string): ParseResult {
         notes: '',
         amount,
         tags: '',
-        owner: '',
       }
       rows.push({ raw, parsed })
     } catch (e) {

@@ -8,10 +8,9 @@
     100px               /* Amount */
     minmax(260px, 1fr)  /* Statement (only flexible column) */
     200px               /* Notes */
-    50px                /* Tags */
-    100px               /* Owner */
+    80px                /* Tags */
     36px;               /* Delete */
-  --grid-min-width: 1446px;
+  --grid-min-width: 1376px;
   height: calc(100vh - 180px);
   overflow: auto;
   border: 1px solid #ddd;
