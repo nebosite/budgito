@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   Budget,
+  ImportFormat,
   ImportResult,
   OriginalTransaction,
   TransactionOverrides,
@@ -15,6 +16,13 @@ import { SettingsView } from './settings'
 import './app.css'
 
 const MAX_HISTORY = 100
+
+/** Human-readable label for each detected import format. */
+const IMPORT_FORMAT_LABELS: Record<ImportFormat, string> = {
+  monarch: 'Monarch',
+  amazon: 'Amazon',
+  ynab: 'YNAB',
+}
 
 type View = 'transactions' | 'report' | 'budget' | 'settings'
 
@@ -559,7 +567,8 @@ export default function App(): JSX.Element {
         {toolbar}
         {lastImport && (
           <p className="import-status">
-            Last import: {lastImport.added} added, {lastImport.skipped} skipped,{' '}
+            Last import ({IMPORT_FORMAT_LABELS[lastImport.format]}):{' '}
+            {lastImport.added} added, {lastImport.skipped} skipped,{' '}
             {lastImport.autoIgnored} auto-ignored, {lastImport.parseErrors.length} parse
             errors.
           </p>

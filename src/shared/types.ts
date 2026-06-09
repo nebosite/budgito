@@ -91,9 +91,14 @@ export interface ParseError {
   reason: string
 }
 
+/** Which source format an imported file was detected as. */
+export type ImportFormat = 'monarch' | 'amazon' | 'ynab'
+
 /** Outcome of a single CSV import, returned to the renderer for UI feedback. */
 export interface ImportResult {
   master: MasterFile
+  /** The source format auto-detected from the file's header row. */
+  format: ImportFormat
   added: number
   skipped: number
   autoIgnored: number

@@ -8,6 +8,9 @@ import { importCsvFile } from './import'
 const HEADER =
   'Date,Merchant,Category,Account,Original Statement,Notes,Amount,Tags,Owner'
 
+const YNAB_HEADER =
+  '"Account","Flag","Date","Payee","Category Group/Category","Category Group","Category","Memo","Outflow","Inflow","Cleared"'
+
 const EMPTY_MASTER: MasterFile = { version: 1, records: [] }
 
 let dir: string
@@ -35,11 +38,32 @@ describe('importCsvFile', () => {
     )
 
     const r = await importCsvFile(csvPath, EMPTY_MASTER)
+    expect(r.format).toBe('monarch')
     expect(r.added).toBe(2)
     expect(r.skipped).toBe(0)
     expect(r.autoIgnored).toBe(0)
     expect(r.parseErrors).toEqual([])
     expect(r.master.records).toHaveLength(2)
+  })
+
+  it('auto-detects and imports a YNAB export', async () => {
+    await writeFile(
+      csvPath,
+      [
+        YNAB_HEADER,
+        '"Amazon Chase Card","Approved","05/29/2026","Amazon","Education & Career: Kids Books & Toys","Education & Career","Kids Books & Toys","molds",23.50,0.00,"Cleared"',
+        '"Discover Card","Approved","05/29/2026","Paycheck","","","","",0.00,327.06,"Uncleared"',
+      ].join('\n'),
+      'utf8',
+    )
+
+    const r = await importCsvFile(csvPath, EMPTY_MASTER)
+    expect(r.format).toBe('ynab')
+    expect(r.added).toBe(2)
+    expect(r.master.records).toHaveLength(2)
+    const amounts = r.master.records.map((rec) => rec.original.amount).sort((a, b) => a - b)
+    expect(amounts[0]).toBeCloseTo(-23.5, 2)
+    expect(amounts[1]).toBeCloseTo(327.06, 2)
   })
 
   it('is idempotent when re-importing the same file', async () => {
