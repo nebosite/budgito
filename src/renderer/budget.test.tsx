@@ -6,6 +6,8 @@ import type { Budget, BudgetRow, TransactionRecord } from '../shared/types'
 import { canonicalRecordKey } from '../shared/records'
 import {
   BudgetView,
+  addBudgetCategory,
+  addMissingBudgetCategories,
   addMonths,
   autofillBudget,
   budgetBottomLine,
@@ -13,6 +15,7 @@ import {
   deleteRow,
   fillRowRange,
   formatBudgetAmount,
+  missingBudgetCategories,
   monthsForBudget,
   moveRow,
   recordsForBudgetCell,
@@ -736,6 +739,120 @@ describe('autofillBudget', () => {
   })
 })
 
+describe('missingBudgetCategories', () => {
+  // Window for now = 2026-06-15 is 2025-06-01 → 2026-05-31.
+  const now = new Date(2026, 5, 15)
+
+  it('lists in-window categories that have no row in any section', () => {
+    const b = makeBudget({
+      startMonth: '2026-06',
+      bills: [makeRow('Rent')],
+      discretionary: [makeRow('Food')],
+    })
+    const records = [
+      makeRecord({ date: '2025-07-10', category: 'Rent', amount: -1500 }),
+      makeRecord({ date: '2025-07-10', category: 'Food', amount: -20 }),
+      makeRecord({ date: '2025-07-10', category: 'Coffee', amount: -8 }),
+      makeRecord({ date: '2025-08-01', category: 'Gas', amount: -40 }),
+    ]
+    expect(missingBudgetCategories(records, b, now)).toEqual(['Coffee', 'Gas'])
+  })
+
+  it('matches existing rows case-insensitively and ignores blanks', () => {
+    const b = makeBudget({ discretionary: [makeRow('food')] })
+    const records = [
+      makeRecord({ date: '2025-07-10', category: 'FOOD', amount: -10 }),
+      makeRecord({ date: '2025-07-10', category: '   ', amount: -10 }),
+    ]
+    expect(missingBudgetCategories(records, b, now)).toEqual([])
+  })
+
+  it('ignores out-of-window and ignored records', () => {
+    const b = makeBudget({})
+    const records = [
+      makeRecord({ date: '2024-01-10', category: 'OldCat', amount: -10 }),
+      makeRecord({ date: '2025-07-10', category: 'Hidden', amount: -10, ignored: true }),
+    ]
+    expect(missingBudgetCategories(records, b, now)).toEqual([])
+  })
+
+  it('reports each missing category once, in first-seen casing', () => {
+    const b = makeBudget({})
+    const records = [
+      makeRecord({ date: '2025-07-10', category: 'Coffee', amount: -8 }),
+      makeRecord({ date: '2025-09-10', category: 'coffee', amount: -9 }),
+    ]
+    expect(missingBudgetCategories(records, b, now)).toEqual(['Coffee'])
+  })
+})
+
+describe('addMissingBudgetCategories', () => {
+  const now = new Date(2026, 5, 15)
+
+  it('appends missing categories filled like autofill, leaving existing rows untouched', () => {
+    const b = makeBudget({
+      startMonth: '2026-06',
+      discretionary: [makeRow('Food', new Array(12).fill(0))],
+    })
+    const records = [
+      makeRecord({ date: '2025-06-10', category: 'Coffee', amount: -12.3 }),
+      makeRecord({ date: '2025-07-04', category: 'Coffee', amount: -8 }),
+      // Food already has a row — its zero cells must stay zero (not autofilled).
+      makeRecord({ date: '2025-06-10', category: 'Food', amount: -40 }),
+    ]
+    const next = addMissingBudgetCategories(records, b, now)
+    expect(next.discretionary.map((r) => r.category)).toEqual(['Coffee', 'Food'])
+    const coffee = next.discretionary.find((r) => r.category === 'Coffee')!
+    expect(coffee.amounts[0]).toBe(-13) // Jun: -12.3 → magnitude-up → -13
+    expect(coffee.amounts[1]).toBe(-8) // Jul
+    const food = next.discretionary.find((r) => r.category === 'Food')!
+    expect(food.amounts.every((a) => a === 0)).toBe(true)
+  })
+
+  it('returns the same budget reference when nothing is missing', () => {
+    const b = makeBudget({ discretionary: [makeRow('Food')] })
+    const records = [makeRecord({ date: '2025-07-10', category: 'Food', amount: -10 })]
+    expect(addMissingBudgetCategories(records, b, now)).toBe(b)
+  })
+
+  it('does not mutate the input budget', () => {
+    const b = makeBudget({ startMonth: '2026-06', discretionary: [makeRow('Food')] })
+    const before = JSON.parse(JSON.stringify(b))
+    const records = [makeRecord({ date: '2025-06-10', category: 'Coffee', amount: -5 })]
+    addMissingBudgetCategories(records, b, now)
+    expect(b).toEqual(before)
+  })
+})
+
+describe('addBudgetCategory', () => {
+  const now = new Date(2026, 5, 15)
+
+  it('adds a single category as a filled Discretionary row', () => {
+    const b = makeBudget({ startMonth: '2026-06', discretionary: [makeRow('Food')] })
+    const records = [
+      makeRecord({ date: '2025-06-10', category: 'Coffee', amount: -12.3 }),
+      makeRecord({ date: '2025-06-12', category: 'Gas', amount: -40 }),
+    ]
+    const next = addBudgetCategory(records, b, 'Coffee', now)
+    expect(next.discretionary.map((r) => r.category)).toEqual(['Coffee', 'Food'])
+    const coffee = next.discretionary.find((r) => r.category === 'Coffee')!
+    expect(coffee.amounts[0]).toBe(-13)
+    // Gas was not requested, so no Gas row appears.
+    expect(next.discretionary.some((r) => r.category === 'Gas')).toBe(false)
+  })
+
+  it('is a no-op (same reference) when the category already exists in any section', () => {
+    const b = makeBudget({ bills: [makeRow('Rent')] })
+    const records = [makeRecord({ date: '2025-07-10', category: 'rent', amount: -1000 })]
+    expect(addBudgetCategory(records, b, 'Rent', now)).toBe(b)
+  })
+
+  it('is a no-op for a blank name', () => {
+    const b = makeBudget({})
+    expect(addBudgetCategory([], b, '   ', now)).toBe(b)
+  })
+})
+
 describe('recordsForBudgetCell', () => {
   it('returns indices whose effective category and month match (case-insensitive)', () => {
     const records = [
@@ -795,6 +912,109 @@ describe('BudgetView', () => {
     expect(created.bills).toEqual([])
     expect(created.discretionary.map((r) => r.category)).toEqual(['Food', 'Rent', 'Travel'])
     expect(created.discretionary[0].amounts).toEqual(new Array(12).fill(0))
+  })
+
+  // A date ~2 months back is always inside the past-12-months spending window
+  // (the current month is excluded), so these tests aren't time-dependent.
+  function recentInWindow(): { date: string; startMonth: string } {
+    const d = new Date()
+    d.setDate(15)
+    d.setMonth(d.getMonth() - 2)
+    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    return { date: `${ym}-15`, startMonth: ym }
+  }
+
+  it('warns about missing categories and adds them on click', async () => {
+    const user = userEvent.setup()
+    const { date, startMonth } = recentInWindow()
+    const b: Budget = {
+      name: 'B',
+      startMonth,
+      income: [],
+      bills: [],
+      discretionary: [makeRow('Food')],
+    }
+    const onChange = vi.fn<(next: Budget[]) => void>()
+    const onAddCategory = vi.fn<(name: string) => void>()
+    render(
+      <BudgetView
+        budgets={[b]}
+        availableCategories={[]}
+        onChange={onChange}
+        onAddCategory={onAddCategory}
+        {...subGridDefaults}
+        records={[makeRecord({ date, category: 'Coffee', amount: -8 })]}
+      />,
+    )
+
+    expect(
+      screen.getByText('There are missing categories in this budget.'),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Add missing' }))
+    expect(onAddCategory).toHaveBeenCalledWith('Coffee')
+    const updated = onChange.mock.calls[0][0][0]
+    expect(updated.discretionary.map((r) => r.category)).toContain('Coffee')
+  })
+
+  it('offers a per-category button that adds just that category', async () => {
+    const user = userEvent.setup()
+    const { date, startMonth } = recentInWindow()
+    const b: Budget = {
+      name: 'B',
+      startMonth,
+      income: [],
+      bills: [],
+      discretionary: [],
+    }
+    const onChange = vi.fn<(next: Budget[]) => void>()
+    const onAddCategory = vi.fn<(name: string) => void>()
+    render(
+      <BudgetView
+        budgets={[b]}
+        availableCategories={[]}
+        onChange={onChange}
+        onAddCategory={onAddCategory}
+        {...subGridDefaults}
+        records={[
+          makeRecord({ date, category: 'Coffee', amount: -8 }),
+          makeRecord({ date, category: 'Gas', amount: -40 }),
+        ]}
+      />,
+    )
+
+    // One button per missing category, plus the bulk "Add missing".
+    await user.click(screen.getByRole('button', { name: 'Add Coffee' }))
+    expect(onAddCategory).toHaveBeenCalledWith('Coffee')
+    const updated = onChange.mock.calls[0][0][0]
+    const cats = updated.discretionary.map((r: BudgetRow) => r.category)
+    expect(cats).toContain('Coffee')
+    expect(cats).not.toContain('Gas')
+  })
+
+  it('shows no warning when every in-window category already has a row', () => {
+    const { date, startMonth } = recentInWindow()
+    const b: Budget = {
+      name: 'B',
+      startMonth,
+      income: [],
+      bills: [],
+      discretionary: [makeRow('Coffee')],
+    }
+    render(
+      <BudgetView
+        budgets={[b]}
+        availableCategories={[]}
+        onChange={vi.fn()}
+        onAddCategory={vi.fn()}
+        {...subGridDefaults}
+        records={[makeRecord({ date, category: 'Coffee', amount: -8 })]}
+      />,
+    )
+
+    expect(
+      screen.queryByText('There are missing categories in this budget.'),
+    ).not.toBeInTheDocument()
   })
 
   it('rejects a duplicate name (case-insensitive)', async () => {

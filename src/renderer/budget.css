@@ -34,6 +34,62 @@
   font-size: 12px;
 }
 
+/* Red banner shown when transactions from the last 12 months reference
+   categories that have no row in the selected budget. */
+.budget-missing-warning {
+  flex: none;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  background: #fde8e8;
+  border: 1px solid #e0b4b4;
+  border-radius: 3px;
+  box-sizing: border-box;
+}
+
+.budget-missing-text {
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.budget-missing-add {
+  flex: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  color: white;
+  background: #b91c1c;
+  border: 1px solid #b91c1c;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.budget-missing-add:hover {
+  background: #991b1b;
+}
+
+/* Per-category buttons: lighter, outlined variant of the solid "Add missing". */
+.budget-missing-add-one {
+  flex: none;
+  font: inherit;
+  font-size: 12px;
+  padding: 4px 10px;
+  color: #b91c1c;
+  background: white;
+  border: 1px solid #d88;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.budget-missing-add-one:hover {
+  background: #fceaea;
+}
+
 /* "Bottom line" projection strip between the toolbar and the budget table.
    Label and value sit adjacent at the left edge (unlike the bottom
    transactions strip, which pushes them to opposite ends). */

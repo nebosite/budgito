@@ -379,6 +379,153 @@ export function autofillBudget(
 }
 
 /**
+ * Category names (in first-seen display casing) that have at least one
+ * non-ignored transaction inside the past-12-months spending window but no
+ * row in any section of the budget. Sorted case-insensitively. The result
+ * drives the "missing categories" warning on the Budget tab.
+ *
+ * `now` is the reference date for the spending window — defaulted to the
+ * current time, overridable so tests can pin the window.
+ */
+export function missingBudgetCategories(
+  records: readonly TransactionRecord[],
+  budget: Budget,
+  now: Date = new Date(),
+): string[] {
+  const window = defaultSpendingWindow(now)
+  const present = new Set<string>(
+    [...budget.income, ...budget.bills, ...budget.discretionary].map((r) =>
+      r.category.trim().toLowerCase(),
+    ),
+  )
+  const displayCase = new Map<string, string>()
+  for (const r of records) {
+    if (r.ignored) continue
+    const date = effectiveDate(r)
+    if (date < window.from || date > window.to) continue
+    const cv = effectiveValue(r, 'category')
+    const cat = typeof cv === 'string' ? cv.trim() : ''
+    if (cat === '') continue
+    const key = cat.toLowerCase()
+    if (present.has(key)) continue
+    if (!displayCase.has(key)) displayCase.set(key, cat)
+  }
+  return [...displayCase.values()].sort((a, b) =>
+    a.toLowerCase().localeCompare(b.toLowerCase()),
+  )
+}
+
+/**
+ * Build filled Discretionary rows for the given category names (each in the
+ * casing to display). Cells are populated from the spending window the same
+ * way Autofill does: sum per month-of-year, rounded magnitude-up to whole
+ * dollars. Categories with no in-window records yield an all-zero row.
+ */
+function buildFilledRows(
+  records: readonly TransactionRecord[],
+  names: readonly string[],
+  startMonth: string,
+  now: Date,
+): BudgetRow[] {
+  const window = defaultSpendingWindow(now)
+  const wantLower = new Set(names.map((n) => n.toLowerCase()))
+  // category-lower → MM (two-digit) → signed sum, restricted to `names`.
+  const byCatMM = new Map<string, Map<string, number>>()
+  for (const r of records) {
+    if (r.ignored) continue
+    const date = effectiveDate(r)
+    if (date < window.from || date > window.to) continue
+    const cv = effectiveValue(r, 'category')
+    const cat = typeof cv === 'string' ? cv.trim().toLowerCase() : ''
+    if (cat === '' || !wantLower.has(cat)) continue
+    const mm = date.slice(5, 7)
+    const av = effectiveValue(r, 'amount')
+    const amt = typeof av === 'number' ? av : 0
+    let mmMap = byCatMM.get(cat)
+    if (!mmMap) {
+      mmMap = new Map()
+      byCatMM.set(cat, mmMap)
+    }
+    mmMap.set(mm, (mmMap.get(mm) ?? 0) + amt)
+  }
+
+  // Magnitude-preserving ceiling: -47.3 → -48, 47.3 → 48, -47 → -47, 0 → 0.
+  function ceilMagnitude(v: number): number {
+    if (v === 0) return 0
+    return v < 0 ? -Math.ceil(-v) : Math.ceil(v)
+  }
+
+  const budgetMonths = monthsForBudget(startMonth)
+  return names.map((cat) => {
+    const mmMap = byCatMM.get(cat.toLowerCase())
+    const amounts = new Array<number>(12).fill(0)
+    if (mmMap) {
+      for (let mi = 0; mi < 12; mi++) {
+        const v = mmMap.get(budgetMonths[mi].slice(5, 7))
+        if (v !== undefined) amounts[mi] = ceilMagnitude(v)
+      }
+    }
+    return { category: cat, amounts }
+  })
+}
+
+/**
+ * Append rows to Discretionary and re-sort it alphabetically
+ * (case-insensitive) so additions interleave rather than pile up at the bottom.
+ */
+function appendDiscretionaryRows(budget: Budget, rows: BudgetRow[]): Budget {
+  const discretionary = [...budget.discretionary, ...rows].sort((a, b) =>
+    a.category.toLowerCase().localeCompare(b.category.toLowerCase()),
+  )
+  return { ...budget, discretionary }
+}
+
+/**
+ * Append a Discretionary row for every {@link missingBudgetCategories} result,
+ * filled like Autofill. Unlike Autofill this never touches existing rows —
+ * only the newly-added categories get cells written. Returns the input
+ * unchanged (same reference) when nothing is missing.
+ */
+export function addMissingBudgetCategories(
+  records: readonly TransactionRecord[],
+  budget: Budget,
+  now: Date = new Date(),
+): Budget {
+  const missing = missingBudgetCategories(records, budget, now)
+  if (missing.length === 0) return budget
+  return appendDiscretionaryRows(
+    budget,
+    buildFilledRows(records, missing, budget.startMonth, now),
+  )
+}
+
+/**
+ * Add a single category as a Discretionary row, filled like Autofill. No-op
+ * (same reference returned) when the name is blank or already present in any
+ * section of the budget.
+ */
+export function addBudgetCategory(
+  records: readonly TransactionRecord[],
+  budget: Budget,
+  category: string,
+  now: Date = new Date(),
+): Budget {
+  const name = category.trim()
+  if (name === '') return budget
+  const lower = name.toLowerCase()
+  const present = [
+    ...budget.income,
+    ...budget.bills,
+    ...budget.discretionary,
+  ].some((r) => r.category.trim().toLowerCase() === lower)
+  if (present) return budget
+  return appendDiscretionaryRows(
+    budget,
+    buildFilledRows(records, [name], budget.startMonth, now),
+  )
+}
+
+/**
  * Set the per-row yearly Budgeted cap. Normalizes to a non-negative whole
  * dollar — the input field rejects letters and negatives, but this also
  * defends against API/test misuse.
@@ -866,6 +1013,32 @@ export function BudgetView({
     onChange(budgets.map((b) => (b.name === selected.name ? next : b)))
   }
 
+  // Categories with transactions in the past 12 months that have no row in the
+  // selected budget. Drives the missing-categories warning + "Add missing".
+  const missingCats = useMemo(
+    () => (selected ? missingBudgetCategories(records, selected) : []),
+    [records, selected],
+  )
+
+  /**
+   * Append the missing categories to Discretionary, populating their cells the
+   * way Autofill does, and register any brand-new names in the customs list.
+   */
+  function handleAddMissing(): void {
+    if (!selected || missingCats.length === 0) return
+    const next = addMissingBudgetCategories(records, selected)
+    for (const cat of missingCats) onAddCategory(cat)
+    onChange(budgets.map((b) => (b.name === selected.name ? next : b)))
+  }
+
+  /** Add a single missing category as a filled Discretionary row. */
+  function handleAddOneMissing(cat: string): void {
+    if (!selected) return
+    const next = addBudgetCategory(records, selected, cat)
+    onAddCategory(cat)
+    onChange(budgets.map((b) => (b.name === selected.name ? next : b)))
+  }
+
   function handleCreate(name: string, startMonth: string): void {
     const rows: BudgetRow[] = availableCategories.map((category) => ({
       category,
@@ -922,6 +1095,35 @@ export function BudgetView({
           </span>
         )}
       </div>
+
+      {selected && missingCats.length > 0 && (
+        <div className="budget-missing-warning" role="alert">
+          <span className="budget-missing-text">
+            There are missing categories in this budget.
+          </span>
+          <button
+            type="button"
+            className="budget-missing-add"
+            onClick={handleAddMissing}
+            title={`Add ${missingCats.length} missing categor${
+              missingCats.length === 1 ? 'y' : 'ies'
+            } and fill from the last 12 months`}
+          >
+            Add missing
+          </button>
+          {missingCats.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              className="budget-missing-add-one"
+              onClick={() => handleAddOneMissing(cat)}
+              title={`Add ${cat} and fill from the last 12 months`}
+            >
+              Add {cat}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="budget-bottom-line">
         <span className="budget-bottom-line-label">Bottom line</span>
