@@ -1,9 +1,6 @@
-# Transaction Reader
+# Budgito - "I Budget, therefore I am."
 
-A desktop application for maintaining a personal record of your spending
-history. Import transaction data exported from Monarch Money, override or
-curate any field while preserving the original record, and persist the
-result to a file you own and control.
+A desktop application creating and sticking to a yearly budget. 
 
 ## Features
 
