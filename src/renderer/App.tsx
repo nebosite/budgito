@@ -398,6 +398,7 @@ export default function App(): JSX.Element {
   const availableCategories = useMemo(() => {
     const set = new Set<string>()
     for (const r of history.present) {
+      if (r.ignored) continue
       const c = effectiveValue(r, 'category')
       if (typeof c === 'string' && c.trim() !== '') set.add(c.trim())
     }
