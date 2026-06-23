@@ -221,11 +221,15 @@ export function statusFromSum(
   budgeted: number,
   monthHasAnyRecords: boolean,
 ): CellStatus {
+  // If there are no records at all for that month, there 
+  // should be no color applied to the cell.
   if (!monthHasAnyRecords) return 'empty'
-  if (!entry || entry.count === 0) return 'on-target'
-  const diff = Math.abs(entry.sum) - Math.abs(budgeted)
+
+  // Calculate the difference between the sum of the records and the budgeted amount
+  const sum = entry?.sum ?? 0
+  const diff = sum - budgeted;
   if (Math.abs(diff) <= 1) return 'on-target'
-  return diff > 0 ? 'over' : 'under'
+  return diff > 0 ? 'under' : 'over'
 }
 
 export function budgetCellStatus(
@@ -1468,7 +1472,7 @@ function BudgetGrid({
               {rows.map((row, ri) => (
                 <tr
                   key={row.category}
-                  className="budget-row"
+                  className={`budget-row${selectedCell?.section === sec.id && selectedCell.row === ri ? ' budget-row-highlighted' : ''}`}
                   draggable
                   onDragStart={(e) => {
                     // Clicking a jump button shouldn't start a row drag.

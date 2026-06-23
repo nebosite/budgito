@@ -511,58 +511,62 @@ describe('formatBudgetAmount', () => {
 })
 
 describe('statusFromSum', () => {
-  it("returns 'empty' only when the month has no records at all", () => {
-    expect(statusFromSum(undefined, 100, false)).toBe('empty')
-    expect(statusFromSum({ sum: 0, count: 0 }, 100, false)).toBe('empty')
+  it("returns 'empty' when the month has no records at all", () => {
+    expect(statusFromSum(undefined, -100, false)).toBe('empty')
+    expect(statusFromSum({ sum: -100, count: 1 }, -100, false)).toBe('empty')
   })
 
-  it("returns 'on-target' when the month has records but this category has none", () => {
-    // No matches but month has SOMETHING — nothing happened here, which is fine.
-    expect(statusFromSum(undefined, 100, true)).toBe('on-target')
-    expect(statusFromSum({ sum: 0, count: 0 }, 100, true)).toBe('on-target')
+  it("returns 'on-target' when sum is within $1 of budget", () => {
+    // Spending: sum ≈ budget (both negative)
+    expect(statusFromSum({ sum: -100, count: 1 }, -100, true)).toBe('on-target')
+    expect(statusFromSum({ sum: -100.99, count: 2 }, -100, true)).toBe('on-target')
+    expect(statusFromSum({ sum: -99.01, count: 1 }, -100, true)).toBe('on-target')
+    expect(statusFromSum({ sum: -101, count: 1 }, -100, true)).toBe('on-target')
+    // No budget, no spending
+    expect(statusFromSum(undefined, 0, true)).toBe('on-target')
+    expect(statusFromSum({ sum: 0, count: 0 }, 0, true)).toBe('on-target')
   })
 
-  it("returns 'on-target' when |sum| is within $1 of |budget|", () => {
-    expect(statusFromSum({ sum: -100, count: 1 }, 100, true)).toBe('on-target')
-    expect(statusFromSum({ sum: -100.99, count: 2 }, 100, true)).toBe('on-target')
-    expect(statusFromSum({ sum: -99.01, count: 1 }, 100, true)).toBe('on-target')
-    // Exactly $1 over still counts as on-target (boundary is inclusive).
-    expect(statusFromSum({ sum: -101, count: 1 }, 100, true)).toBe('on-target')
+  it("returns 'under' when sum > budget (spent less than planned, or earned more than planned)", () => {
+    // Spending: spent less than budgeted (sum is less negative)
+    expect(statusFromSum({ sum: -90, count: 1 }, -100, true)).toBe('under')
+    // Spending: no transactions in a month that has other records
+    expect(statusFromSum(undefined, -100, true)).toBe('under')
+    // Income: earned more than budgeted
+    expect(statusFromSum({ sum: 5200, count: 1 }, 5000, true)).toBe('under')
   })
 
-  it("returns 'under' when |sum| is less than |budget| by more than $1", () => {
-    expect(statusFromSum({ sum: -90, count: 1 }, 100, true)).toBe('under')
-    // Income (positive sum) compared with positive budget.
-    expect(statusFromSum({ sum: 4800, count: 1 }, 5000, true)).toBe('under')
-  })
-
-  it("returns 'over' when |sum| exceeds |budget| by more than $1", () => {
-    expect(statusFromSum({ sum: -110, count: 1 }, 100, true)).toBe('over')
-    expect(statusFromSum({ sum: 5200, count: 1 }, 5000, true)).toBe('over')
+  it("returns 'over' when sum < budget (spent more than planned, or earned less than planned)", () => {
+    // Spending: spent more than budgeted (sum is more negative)
+    expect(statusFromSum({ sum: -110, count: 1 }, -100, true)).toBe('over')
+    // Income: earned less than budgeted
+    expect(statusFromSum({ sum: 4800, count: 1 }, 5000, true)).toBe('over')
+    // Income: no transactions when income was expected
+    expect(statusFromSum(undefined, 5000, true)).toBe('over')
   })
 })
 
 describe('budgetCellStatus', () => {
-  it("flags a category that spent within the budget as 'on-target'", () => {
+  it("flags a category that spent exactly the budget as 'on-target'", () => {
     const b = makeBudget({
       startMonth: '2026-01',
-      bills: [makeRow('Rent', [1500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])],
+      bills: [makeRow('Rent', [-1500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])],
     })
     const records = [makeRecord({ date: '2026-01-03', category: 'Rent', amount: -1500 })]
     expect(budgetCellStatus(records, b, 'bills', 0, 0)).toBe('on-target')
   })
 
-  it("flags overspending as 'over' (compared on magnitudes)", () => {
+  it("flags overspending as 'over'", () => {
     const b = makeBudget({
-      bills: [makeRow('Rent', [1500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])],
+      bills: [makeRow('Rent', [-1500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])],
     })
     const records = [makeRecord({ date: '2026-01-03', category: 'Rent', amount: -1700 })]
     expect(budgetCellStatus(records, b, 'bills', 0, 0)).toBe('over')
   })
 
-  it("flags underspending as 'under' (compared on magnitudes)", () => {
+  it("flags underspending as 'under'", () => {
     const b = makeBudget({
-      bills: [makeRow('Rent', [1500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])],
+      bills: [makeRow('Rent', [-1500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])],
     })
     const records = [makeRecord({ date: '2026-01-03', category: 'Rent', amount: -1000 })]
     expect(budgetCellStatus(records, b, 'bills', 0, 0)).toBe('under')
@@ -570,7 +574,7 @@ describe('budgetCellStatus', () => {
 
   it("returns 'empty' when no records exist for the month at all", () => {
     const b = makeBudget({
-      bills: [makeRow('Rent', [1500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])],
+      bills: [makeRow('Rent', [-1500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])],
     })
     // Wrong month: cell 0 is 2026-01, only record is 2026-02. The 2026-01
     // cell has no records of any kind → empty.
@@ -578,14 +582,14 @@ describe('budgetCellStatus', () => {
     expect(budgetCellStatus(records, b, 'bills', 0, 0)).toBe('empty')
   })
 
-  it("returns 'on-target' when the month has records but none in this category", () => {
+  it("returns 'under' when the month has records but none in this spending category", () => {
     const b = makeBudget({
-      bills: [makeRow('Rent', [1500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])],
+      bills: [makeRow('Rent', [-1500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])],
     })
-    // The 2026-01 month has a Food record but no Rent — Rent cell is
-    // on-target (nothing happened in this category, which is fine).
+    // The 2026-01 month has a Food record but no Rent. With a negative spending
+    // budget, sum=0 > budgeted=-1500, so the cell is 'under' (no spending = under budget).
     const records = [makeRecord({ date: '2026-01-03', category: 'Food', amount: -25 })]
-    expect(budgetCellStatus(records, b, 'bills', 0, 0)).toBe('on-target')
+    expect(budgetCellStatus(records, b, 'bills', 0, 0)).toBe('under')
   })
 })
 
