@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SettingsView } from './settings'
 
@@ -7,6 +7,8 @@ function renderView(
   categories: string[],
   usedKeys: string[] = [],
   overrides: Partial<{
+    cutoffDate: string
+    onCutoffDateChange: (next: string) => void
     onAddCategory: (name: string) => void
     onDeleteCategory: (name: string) => void
     onDeleteUnusedCategories: () => void
@@ -17,17 +19,26 @@ function renderView(
   const onDeleteCategory = overrides.onDeleteCategory ?? vi.fn()
   const onDeleteUnusedCategories = overrides.onDeleteUnusedCategories ?? vi.fn()
   const onRenameCategory = overrides.onRenameCategory ?? vi.fn()
+  const onCutoffDateChange = overrides.onCutoffDateChange ?? vi.fn()
   render(
     <SettingsView
       categories={categories}
       usedCategoryKeys={new Set(usedKeys.map((k) => k.toLowerCase()))}
+      cutoffDate={overrides.cutoffDate ?? '2024-06-29'}
+      onCutoffDateChange={onCutoffDateChange}
       onAddCategory={onAddCategory}
       onDeleteCategory={onDeleteCategory}
       onDeleteUnusedCategories={onDeleteUnusedCategories}
       onRenameCategory={onRenameCategory}
     />,
   )
-  return { onAddCategory, onDeleteCategory, onDeleteUnusedCategories, onRenameCategory }
+  return {
+    onAddCategory,
+    onDeleteCategory,
+    onDeleteUnusedCategories,
+    onRenameCategory,
+    onCutoffDateChange,
+  }
 }
 
 describe('SettingsView', () => {
@@ -111,5 +122,18 @@ describe('SettingsView', () => {
     await user.type(screen.getByPlaceholderText('New category'), 'Travel')
     await user.click(screen.getByRole('button', { name: 'Add' }))
     expect(onAddCategory).toHaveBeenCalledWith('Travel')
+  })
+
+  it('shows the current cut-off date in the date input', () => {
+    renderView([], [], { cutoffDate: '2024-06-29' })
+    expect(screen.getByLabelText('Cut-off date')).toHaveValue('2024-06-29')
+  })
+
+  it('calls onCutoffDateChange when the cut-off date is edited', () => {
+    const onCutoffDateChange = vi.fn()
+    renderView([], [], { cutoffDate: '2024-06-29', onCutoffDateChange })
+    const input = screen.getByLabelText('Cut-off date')
+    fireEvent.change(input, { target: { value: '2025-01-15' } })
+    expect(onCutoffDateChange).toHaveBeenCalledWith('2025-01-15')
   })
 })

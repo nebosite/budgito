@@ -131,4 +131,41 @@ describe('importCsvFile', () => {
     await writeFile(csvPath, '', 'utf8')
     await expect(importCsvFile(csvPath, EMPTY_MASTER)).rejects.toThrow()
   })
+
+  it('skips rows older than the cut-off date', async () => {
+    await writeFile(
+      csvPath,
+      [
+        HEADER,
+        '5/8/2026,Recent,subs,A,RECENT,,-10,,S',     // after cutoff — kept
+        '1/1/2024,OnCutoff,subs,A,ONCUTOFF,,-20,,S',  // exactly on cutoff — kept
+        '12/31/2023,TooOld,subs,A,TOOOLD,,-30,,S',    // before cutoff — dropped
+      ].join('\n'),
+      'utf8',
+    )
+
+    const r = await importCsvFile(csvPath, EMPTY_MASTER, '2024-01-01')
+    expect(r.added).toBe(2)
+    expect(r.skippedOld).toBe(1)
+    expect(r.master.records.map((rec) => rec.original.merchant).sort()).toEqual([
+      'OnCutoff',
+      'Recent',
+    ])
+  })
+
+  it('imports everything and reports skippedOld 0 when no cut-off is given', async () => {
+    await writeFile(
+      csvPath,
+      [
+        HEADER,
+        '5/8/2026,Recent,subs,A,RECENT,,-10,,S',
+        '12/31/2000,Ancient,subs,A,ANCIENT,,-30,,S',
+      ].join('\n'),
+      'utf8',
+    )
+
+    const r = await importCsvFile(csvPath, EMPTY_MASTER)
+    expect(r.added).toBe(2)
+    expect(r.skippedOld).toBe(0)
+  })
 })

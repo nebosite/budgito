@@ -55,6 +55,8 @@ const api: ElectronApi = {
   loadSettings: (): Promise<Settings> => ipcRenderer.invoke('settings-load'),
   saveCategories: (categories: string[]): Promise<void> =>
     ipcRenderer.invoke('settings-save-categories', categories),
+  saveCutoffDate: (cutoffDate: string): Promise<void> =>
+    ipcRenderer.invoke('settings-save-cutoff-date', cutoffDate),
   setLastOpenedPath: (path: string | null): Promise<void> =>
     ipcRenderer.invoke('settings-set-last-opened', path),
   getSettingsPath: (): Promise<string> => ipcRenderer.invoke('settings:get-path'),

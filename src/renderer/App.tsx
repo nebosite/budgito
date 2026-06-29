@@ -13,6 +13,7 @@ import {
   effectiveValue,
   renameCategoryInRecords,
 } from '../shared/records'
+import { defaultCutoffDate } from '../shared/cutoff'
 import { BudgetView, renameCategoryInBudget } from './budget'
 import { Grid } from './grid'
 import { HelpModal } from './help-modal'
@@ -47,6 +48,11 @@ export default function App(): JSX.Element {
   const [savedRef, setSavedRef] = useState<TransactionRecord[]>(emptyHistory.present)
   const [lastImport, setLastImport] = useState<ImportResult | null>(null)
   const [categories, setCategories] = useState<string[]>([])
+  // Import cut-off: transactions older than this are skipped on import.
+  // Defaults to two years before today until the user changes it in Settings.
+  const [cutoffDate, setCutoffDate] = useState<string>(() =>
+    defaultCutoffDate(new Date()),
+  )
   // Bumped by the Resort button to make the grid re-sort/re-filter on demand.
   const [resortKey, setResortKey] = useState(0)
   // The file the records were last opened from or saved to; null = untitled.
@@ -86,6 +92,7 @@ export default function App(): JSX.Element {
     void (async () => {
       const s = await window.api.loadSettings()
       setCategories(s.categories)
+      if (s.cutoffDate) setCutoffDate(s.cutoffDate)
       if (!s.lastOpenedPath) return
       try {
         const master = await window.api.readMasterFile(s.lastOpenedPath)
@@ -412,6 +419,12 @@ export default function App(): JSX.Element {
     void window.api.saveCategories(next)
   }
 
+  function handleCutoffDateChange(next: string): void {
+    if (next.trim() === '') return
+    setCutoffDate(next)
+    void window.api.saveCutoffDate(next)
+  }
+
   function handleAddCategory(name: string): void {
     if (categories.some((c) => c.toLowerCase() === name.toLowerCase())) return
     persistCategories([...categories, name])
@@ -650,8 +663,8 @@ export default function App(): JSX.Element {
           <p className="import-status">
             Last import ({IMPORT_FORMAT_LABELS[lastImport.format]}):{' '}
             {lastImport.added} added, {lastImport.skipped} skipped,{' '}
-            {lastImport.autoIgnored} auto-ignored, {lastImport.parseErrors.length} parse
-            errors.
+            {lastImport.skippedOld} too old, {lastImport.autoIgnored} auto-ignored,{' '}
+            {lastImport.parseErrors.length} parse errors.
           </p>
         )}
         <Grid
@@ -705,6 +718,8 @@ export default function App(): JSX.Element {
         <SettingsView
           categories={categories}
           usedCategoryKeys={usedCategoryKeys}
+          cutoffDate={cutoffDate}
+          onCutoffDateChange={handleCutoffDateChange}
           onAddCategory={handleAddCategory}
           onDeleteCategory={handleDeleteCategory}
           onDeleteUnusedCategories={handleDeleteUnusedCategories}

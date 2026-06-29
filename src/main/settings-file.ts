@@ -69,5 +69,8 @@ function isSettingsShape(v: unknown): v is Settings {
   if (obj.lastOpenedPath !== undefined && typeof obj.lastOpenedPath !== 'string') {
     return false
   }
+  if (obj.cutoffDate !== undefined && typeof obj.cutoffDate !== 'string') {
+    return false
+  }
   return true
 }

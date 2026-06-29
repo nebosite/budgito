@@ -11,6 +11,7 @@ import type {
   TransactionRecord,
 } from '../shared/types'
 import { canonicalRecordKey, sortRecordsByDateDescending } from '../shared/records'
+import { defaultCutoffDate } from '../shared/cutoff'
 import { backupCurrent } from './atomic-write'
 import { importCsvFile } from './import'
 import { loadMasterFile, saveMasterFile } from './master-file'
@@ -346,7 +347,9 @@ app.whenReady().then(async () => {
       })
       if (canceled || filePaths.length === 0) return null
       const current: MasterFile = { version: 1, records: currentRecords }
-      return importCsvFile(filePaths[0], current)
+      const settings = await loadSettings(settingsFilePath())
+      const cutoff = settings.cutoffDate ?? defaultCutoffDate(new Date())
+      return importCsvFile(filePaths[0], current, cutoff)
     },
   )
 
@@ -358,6 +361,13 @@ app.whenReady().then(async () => {
     'settings-save-categories',
     async (_event, categories: string[]): Promise<void> => {
       await updateSettings((s) => ({ ...s, categories }))
+    },
+  )
+
+  ipcMain.handle(
+    'settings-save-cutoff-date',
+    async (_event, cutoffDate: string): Promise<void> => {
+      await updateSettings((s) => ({ ...s, cutoffDate }))
     },
   )
 

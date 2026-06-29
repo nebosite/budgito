@@ -111,6 +111,8 @@ export interface ImportResult {
   format: ImportFormat
   added: number
   skipped: number
+  /** Rows dropped because they predate the import cut-off date. */
+  skippedOld: number
   autoIgnored: number
   parseErrors: ParseError[]
   /** Records in master within the import date range that were not in the import file. */
@@ -134,6 +136,12 @@ export interface Settings {
   window?: WindowSize
   /** Absolute path of the last master file the user had open, if any. */
   lastOpenedPath?: string
+  /**
+   * Import cut-off date (YYYY-MM-DD). Transactions dated before this are
+   * skipped on import. Absent until the user changes it; callers fall back to
+   * `defaultCutoffDate` (two years before today). See `src/shared/cutoff.ts`.
+   */
+  cutoffDate?: IsoDate
 }
 
 /** Commands the application menu sends from the main process to the renderer. */
@@ -196,6 +204,8 @@ export interface ElectronApi {
   loadSettings: () => Promise<Settings>
   /** Persist the custom-category list. Other settings fields are left untouched. */
   saveCategories: (categories: string[]) => Promise<void>
+  /** Persist the import cut-off date. Other settings fields are left untouched. */
+  saveCutoffDate: (cutoffDate: string) => Promise<void>
   /** Persist the path of the file currently open (null when there is none). */
   setLastOpenedPath: (path: string | null) => Promise<void>
   /** Absolute path of the app's settings.json file. */

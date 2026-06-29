@@ -5,6 +5,10 @@ interface SettingsViewProps {
   categories: string[]
   /** Lowercased effective categories that appear in records — for highlighting unused customs. */
   usedCategoryKeys: Set<string>
+  /** Current import cut-off date (YYYY-MM-DD). */
+  cutoffDate: string
+  /** Persist a new cut-off date. */
+  onCutoffDateChange: (next: string) => void
   onAddCategory: (name: string) => void
   onDeleteCategory: (name: string) => void
   onDeleteUnusedCategories: () => void
@@ -15,6 +19,8 @@ interface SettingsViewProps {
 export function SettingsView({
   categories,
   usedCategoryKeys,
+  cutoffDate,
+  onCutoffDateChange,
   onAddCategory,
   onDeleteCategory,
   onDeleteUnusedCategories,
@@ -63,6 +69,23 @@ export function SettingsView({
           Settings file: {settingsPath}
         </button>
       )}
+      <h2>Import</h2>
+      <div className="settings-cutoff">
+        <label htmlFor="settings-cutoff-date" className="settings-cutoff-label">
+          Cut-off date
+        </label>
+        <input
+          id="settings-cutoff-date"
+          type="date"
+          className="settings-cutoff-input"
+          value={cutoffDate}
+          onChange={(e) => onCutoffDateChange(e.target.value)}
+        />
+        <span className="settings-cutoff-help">
+          Transactions older than this date are skipped on import.
+        </span>
+      </div>
+
       <div className="settings-title-row">
         <h2>Custom Categories</h2>
         <button
