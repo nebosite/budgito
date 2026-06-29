@@ -13,7 +13,7 @@ import type {
 import { canonicalRecordKey, sortRecordsByDateDescending } from '../shared/records'
 import { defaultCutoffDate } from '../shared/cutoff'
 import { backupCurrent } from './atomic-write'
-import { importCsvFile } from './import'
+import { importCsvFiles } from './import'
 import { loadMasterFile, saveMasterFile } from './master-file'
 import { loadSettings, saveSettings } from './settings-file'
 
@@ -341,15 +341,15 @@ app.whenReady().then(async () => {
     'import-csv',
     async (_event, currentRecords: TransactionRecord[]): Promise<ImportResult | null> => {
       const { canceled, filePaths } = await dialog.showOpenDialog({
-        title: 'Import Monarch CSV',
+        title: 'Import CSV',
         filters: [{ name: 'CSV Files', extensions: ['csv'] }],
-        properties: ['openFile'],
+        properties: ['openFile', 'multiSelections'],
       })
       if (canceled || filePaths.length === 0) return null
       const current: MasterFile = { version: 1, records: currentRecords }
       const settings = await loadSettings(settingsFilePath())
       const cutoff = settings.cutoffDate ?? defaultCutoffDate(new Date())
-      return importCsvFile(filePaths[0], current, cutoff)
+      return importCsvFiles(filePaths, current, cutoff)
     },
   )
 

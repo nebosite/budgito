@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   Budget,
-  ImportFormat,
   ImportResult,
   OrphanInfo,
   OriginalTransaction,
@@ -19,18 +18,12 @@ import { Grid } from './grid'
 import { HelpModal } from './help-modal'
 import { NewTransactionDialog } from './new-transaction-dialog'
 import { OrphanedTransactionDialog } from './orphaned-transaction-dialog'
+import { ImportSummaryDialog } from './import-summary-dialog'
 import { Report } from './report'
 import { SettingsView } from './settings'
 import './app.css'
 
 const MAX_HISTORY = 100
-
-/** Human-readable label for each detected import format. */
-const IMPORT_FORMAT_LABELS: Record<ImportFormat, string> = {
-  monarch: 'Monarch',
-  amazon: 'Amazon',
-  ynab: 'YNAB',
-}
 
 type View = 'transactions' | 'report' | 'budget' | 'settings'
 
@@ -61,6 +54,8 @@ export default function App(): JSX.Element {
   const [helpOpen, setHelpOpen] = useState(false)
   const [newTxOpen, setNewTxOpen] = useState(false)
   const [orphanQueue, setOrphanQueue] = useState<OrphanInfo[]>([])
+  // Shown right after an import completes; on dismissal any orphans are queued.
+  const [showImportSummary, setShowImportSummary] = useState(false)
   // Budgets live in the master file; track them in parallel with the records
   // and their savedRef so dirty considers both.
   const [budgets, setBudgets] = useState<Budget[]>([])
@@ -217,8 +212,15 @@ export default function App(): JSX.Element {
     // the merged records aren't on disk yet, so this leaves the doc dirty.
     apply(() => result.master.records)
     setLastImport(result)
-    if (result.orphaned.length > 0) {
-      setOrphanQueue(result.orphaned)
+    // Show the per-file summary first; orphan resolution starts once the user
+    // dismisses it (see handleImportSummaryClose) so the two modals never stack.
+    setShowImportSummary(true)
+  }
+
+  function handleImportSummaryClose(): void {
+    setShowImportSummary(false)
+    if (lastImport && lastImport.orphaned.length > 0) {
+      setOrphanQueue(lastImport.orphaned)
     }
   }
 
@@ -620,9 +622,22 @@ export default function App(): JSX.Element {
     </div>
   )
 
-  console.log(lastImport?.parseErrors);
-
   const orphanTotal = lastImport?.orphaned.length ?? orphanQueue.length
+
+  // Aggregate the last import's per-file counts for the one-line status banner.
+  const importAgg = lastImport
+    ? lastImport.files.reduce(
+        (acc, f) => ({
+          added: acc.added + f.added,
+          skipped: acc.skipped + f.skipped,
+          skippedOld: acc.skippedOld + f.skippedOld,
+          autoIgnored: acc.autoIgnored + f.autoIgnored,
+          parseErrors: acc.parseErrors + f.parseErrors.length,
+          failed: acc.failed + (f.error ? 1 : 0),
+        }),
+        { added: 0, skipped: 0, skippedOld: 0, autoIgnored: 0, parseErrors: 0, failed: 0 },
+      )
+    : null
 
   return (
     <div className="app">
@@ -659,12 +674,20 @@ export default function App(): JSX.Element {
         className={`tab-panel${view !== 'transactions' ? ' tab-panel-hidden' : ''}`}
       >
         {toolbar}
-        {lastImport && (
+        {lastImport && importAgg && (
           <p className="import-status">
-            Last import ({IMPORT_FORMAT_LABELS[lastImport.format]}):{' '}
-            {lastImport.added} added, {lastImport.skipped} skipped,{' '}
-            {lastImport.skippedOld} too old, {lastImport.autoIgnored} auto-ignored,{' '}
-            {lastImport.parseErrors.length} parse errors.
+            Imported {lastImport.files.length} file
+            {lastImport.files.length === 1 ? '' : 's'}: {importAgg.added} added,{' '}
+            {importAgg.skipped} skipped, {importAgg.skippedOld} too old,{' '}
+            {importAgg.autoIgnored} auto-ignored, {importAgg.parseErrors} parse errors
+            {importAgg.failed > 0 ? `, ${importAgg.failed} failed` : ''}.{' '}
+            <button
+              type="button"
+              className="import-status-link"
+              onClick={() => setShowImportSummary(true)}
+            >
+              View report
+            </button>
           </p>
         )}
         <Grid
@@ -734,6 +757,12 @@ export default function App(): JSX.Element {
           accounts={knownAccounts}
           onAdd={handleAddTransaction}
           onCancel={() => setNewTxOpen(false)}
+        />
+      )}
+      {showImportSummary && lastImport && (
+        <ImportSummaryDialog
+          files={lastImport.files}
+          onClose={handleImportSummaryClose}
         />
       )}
       {orphanQueue.length > 0 && (

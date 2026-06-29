@@ -1,0 +1,125 @@
+.import-summary-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.import-summary-dialog {
+  background: white;
+  width: min(760px, 96vw);
+  max-height: 90vh;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: system-ui, sans-serif;
+}
+
+.import-summary-header {
+  padding: 10px 16px;
+  border-bottom: 1px solid #ddd;
+  background: #f5f5f5;
+}
+
+.import-summary-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.import-summary-count {
+  font-weight: 400;
+  color: #555;
+}
+
+.import-summary-body {
+  padding: 14px 16px;
+  overflow-y: auto;
+}
+
+.import-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.import-summary-table th {
+  text-align: left;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #ddd;
+  white-space: nowrap;
+}
+
+.import-summary-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.import-summary-table .col-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.import-summary-table .col-file {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.import-summary-table .col-format {
+  color: #555;
+  white-space: nowrap;
+}
+
+.import-summary-row-failed td {
+  background: #fef2f2;
+}
+
+.import-summary-error {
+  color: #b91c1c;
+  font-size: 12px;
+}
+
+.import-summary-totals td {
+  border-top: 2px solid #ddd;
+  border-bottom: none;
+  font-weight: 600;
+}
+
+.import-summary-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 16px;
+  border-top: 1px solid #ddd;
+  background: #fafafa;
+}
+
+.import-summary-btn {
+  height: 30px;
+  padding: 0 18px;
+  font: inherit;
+  font-size: 13px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid #3b82f6;
+  background: #3b82f6;
+  color: white;
+  font-weight: 500;
+}
+
+.import-summary-btn:hover {
+  background: #2f6fe0;
+}

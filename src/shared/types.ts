@@ -104,18 +104,32 @@ export interface OrphanInfo {
 /** Which source format an imported file was detected as. */
 export type ImportFormat = 'monarch' | 'amazon' | 'ynab'
 
-/** Outcome of a single CSV import, returned to the renderer for UI feedback. */
-export interface ImportResult {
-  master: MasterFile
-  /** The source format auto-detected from the file's header row. */
-  format: ImportFormat
+/** Outcome of importing one CSV file within a (possibly multi-file) import. */
+export interface FileImportResult {
+  /** The file's base name (no directory), for display in the summary report. */
+  fileName: string
+  /** Detected source format, or null when the file failed before detection. */
+  format: ImportFormat | null
   added: number
   skipped: number
   /** Rows dropped because they predate the import cut-off date. */
   skippedOld: number
   autoIgnored: number
   parseErrors: ParseError[]
-  /** Records in master within the import date range that were not in the import file. */
+  /**
+   * Whole-file failure message (empty file, missing column, I/O error), or
+   * null on success. A failed file leaves the master unchanged and does not
+   * abort the remaining files in the batch.
+   */
+  error: string | null
+}
+
+/** Outcome of a CSV import (one or more files), returned to the renderer. */
+export interface ImportResult {
+  master: MasterFile
+  /** Per-file outcomes, in the order the files were imported. */
+  files: FileImportResult[]
+  /** Records in master within the imported date range/accounts that were in no imported file. */
   orphaned: OrphanInfo[]
 }
 
@@ -152,9 +166,10 @@ export type DiscardChoice = 'save' | 'discard' | 'cancel'
 
 export interface ElectronApi {
   /**
-   * Open a file picker for a Monarch CSV export and merge it into the given
-   * records. Returns the merged result, or null if the dialog was cancelled.
-   * The renderer is responsible for persisting (no disk write happens here).
+   * Open a file picker (multi-select) for CSV exports and merge them serially
+   * into the given records. Returns the merged result with a per-file summary,
+   * or null if the dialog was cancelled. The renderer is responsible for
+   * persisting (no disk write happens here).
    */
   importCsv: (
     currentRecords: readonly TransactionRecord[],
