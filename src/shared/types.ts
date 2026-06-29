@@ -90,6 +90,17 @@ export interface ParseError {
   reason: string
 }
 
+/**
+ * A transaction present in the master file but absent from an import file's
+ * date range. Detected once per import; the user resolves each one by keeping
+ * (adding an "orphaned" tag) or deleting the record.
+ */
+export interface OrphanInfo {
+  record: TransactionRecord
+  /** Import-file transactions within ±7 days of the orphan's date, for context. */
+  nearbyImported: OriginalTransaction[]
+}
+
 /** Which source format an imported file was detected as. */
 export type ImportFormat = 'monarch' | 'amazon' | 'ynab'
 
@@ -102,6 +113,8 @@ export interface ImportResult {
   skipped: number
   autoIgnored: number
   parseErrors: ParseError[]
+  /** Records in master within the import date range that were not in the import file. */
+  orphaned: OrphanInfo[]
 }
 
 /** Persisted window size in pixels. */

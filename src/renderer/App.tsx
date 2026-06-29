@@ -3,6 +3,7 @@ import type {
   Budget,
   ImportFormat,
   ImportResult,
+  OrphanInfo,
   OriginalTransaction,
   TransactionOverrides,
   TransactionRecord,
@@ -16,6 +17,7 @@ import { BudgetView, renameCategoryInBudget } from './budget'
 import { Grid } from './grid'
 import { HelpModal } from './help-modal'
 import { NewTransactionDialog } from './new-transaction-dialog'
+import { OrphanedTransactionDialog } from './orphaned-transaction-dialog'
 import { Report } from './report'
 import { SettingsView } from './settings'
 import './app.css'
@@ -52,6 +54,7 @@ export default function App(): JSX.Element {
   // Whether the in-app Help dialog (rendered README) is showing.
   const [helpOpen, setHelpOpen] = useState(false)
   const [newTxOpen, setNewTxOpen] = useState(false)
+  const [orphanQueue, setOrphanQueue] = useState<OrphanInfo[]>([])
   // Budgets live in the master file; track them in parallel with the records
   // and their savedRef so dirty considers both.
   const [budgets, setBudgets] = useState<Budget[]>([])
@@ -207,6 +210,32 @@ export default function App(): JSX.Element {
     // the merged records aren't on disk yet, so this leaves the doc dirty.
     apply(() => result.master.records)
     setLastImport(result)
+    if (result.orphaned.length > 0) {
+      setOrphanQueue(result.orphaned)
+    }
+  }
+
+  function handleOrphanKeep(): void {
+    const orphan = orphanQueue[0]
+    if (!orphan) return
+    const { record } = orphan
+    apply((records) =>
+      records.map((r) => {
+        if (r !== record) return r
+        const currentTags = effectiveValue(r, 'tags').trim()
+        const newTags = currentTags === '' ? 'orphaned' : `${currentTags} orphaned`
+        return { ...r, overrides: { ...r.overrides, tags: newTags } }
+      }),
+    )
+    setOrphanQueue((q) => q.slice(1))
+  }
+
+  function handleOrphanDelete(): void {
+    const orphan = orphanQueue[0]
+    if (!orphan) return
+    const { record } = orphan
+    apply((records) => records.filter((r) => r !== record))
+    setOrphanQueue((q) => q.slice(1))
   }
 
   // Save returns true if it persisted (or the user cancelled with nothing to
@@ -579,7 +608,9 @@ export default function App(): JSX.Element {
   )
 
   console.log(lastImport?.parseErrors);
-  
+
+  const orphanTotal = lastImport?.orphaned.length ?? orphanQueue.length
+
   return (
     <div className="app">
       <div className="tabs">
@@ -688,6 +719,15 @@ export default function App(): JSX.Element {
           accounts={knownAccounts}
           onAdd={handleAddTransaction}
           onCancel={() => setNewTxOpen(false)}
+        />
+      )}
+      {orphanQueue.length > 0 && (
+        <OrphanedTransactionDialog
+          orphan={orphanQueue[0]}
+          index={orphanTotal - orphanQueue.length}
+          total={orphanTotal}
+          onKeep={handleOrphanKeep}
+          onDelete={handleOrphanDelete}
         />
       )}
     </div>

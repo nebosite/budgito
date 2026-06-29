@@ -1,0 +1,222 @@
+.orphan-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.orphan-dialog {
+  background: white;
+  width: min(780px, 96vw);
+  max-height: 90vh;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: system-ui, sans-serif;
+}
+
+.orphan-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid #ddd;
+  background: #f5f5f5;
+}
+
+.orphan-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.orphan-count {
+  font-size: 12px;
+  color: #666;
+  background: #e2e8f0;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.orphan-body {
+  padding: 14px 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.orphan-explanation {
+  margin: 0;
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+}
+
+.orphan-description {
+  margin: 0;
+  font-size: 13px;
+  color: #444;
+}
+
+.orphan-title-account {
+  font-weight: 400;
+  color: #555;
+}
+
+/* ── Aligned comparison table ── */
+
+.orphan-tx-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  table-layout: fixed;
+}
+
+.orphan-tx-table col.col-date      { width: 100px; }
+.orphan-tx-table col.col-merchant  { width: 180px; }
+.orphan-tx-table col.col-statement { width: auto;  }
+.orphan-tx-table col.col-amount    { width: 80px;  }
+
+.orphan-tx-table thead th {
+  padding: 4px 8px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #ddd;
+  white-space: nowrap;
+}
+
+.orphan-tx-table thead th:last-child {
+  text-align: right;
+}
+
+.orphan-tx-table td {
+  padding: 6px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Orphaned transaction row — amber highlight */
+.orphan-tx-table tr.orphan-row td {
+  background: #fff8e1;
+  border-top: 1px solid #f59e0b;
+  border-bottom: 1px solid #f59e0b;
+  font-weight: 500;
+}
+
+.orphan-tx-table tr.orphan-row td:first-child {
+  border-left: 3px solid #f59e0b;
+  border-radius: 3px 0 0 3px;
+}
+
+.orphan-tx-table tr.orphan-row td:last-child {
+  border-right: 1px solid #f59e0b;
+  border-radius: 0 3px 3px 0;
+}
+
+/* Detail row (notes / tags) — indented under the orphan row */
+.orphan-tx-table tr.orphan-row-detail td {
+  background: #fffde7;
+  padding: 2px 8px 6px 12px;
+  font-size: 12px;
+  color: #666;
+  display: flex;
+  gap: 16px;
+}
+
+/* Section separator label */
+.orphan-tx-table tr.section-header-row td {
+  padding: 10px 8px 4px;
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Nearby import rows */
+.orphan-tx-table tr.nearby-row td {
+  color: #333;
+}
+
+.orphan-tx-table tr.nearby-row:nth-child(even) td {
+  background: #f8fafc;
+}
+
+/* Matching field highlight on the imported (nearby) rows only. Selectors are
+   scoped tightly enough to out-rank the nearby-row zebra striping, which would
+   otherwise override the green background on even rows. */
+.orphan-tx-table tr.nearby-row td.cell-match,
+.orphan-tx-table tr.nearby-row:nth-child(even) td.cell-match {
+  background: #dcfce7;
+  color: #15803d;
+  font-weight: 600;
+}
+
+/* Shared: merchant truncates, statement truncates, amount right-aligns */
+.orphan-tx-table td.cell-merchant {
+  font-weight: 500;
+}
+
+.orphan-tx-table td.cell-statement {
+  color: #555;
+  font-size: 12px;
+}
+
+.orphan-tx-table td.cell-amount,
+.orphan-tx-table th:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Footer buttons ── */
+
+.orphan-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #ddd;
+  background: #fafafa;
+}
+
+.orphan-btn {
+  height: 30px;
+  padding: 0 18px;
+  font: inherit;
+  font-size: 13px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  font-weight: 500;
+}
+
+.orphan-btn-delete {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.orphan-btn-delete:hover {
+  background: #fee2e2;
+}
+
+.orphan-btn-keep {
+  color: white;
+  background: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.orphan-btn-keep:hover {
+  background: #2f6fe0;
+}

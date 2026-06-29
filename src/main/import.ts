@@ -6,6 +6,7 @@ import { looksLikeAmazonCsv, parseAmazonCsv } from './amazon'
 import { looksLikeYnabCsv, parseYnabCsv } from './ynab'
 import { mergeIntoMaster } from './merge'
 import { detectTransfers } from './transfer-detection'
+import { findOrphanedTransactions } from './orphan-detection'
 import type { ParseResult } from './csv-format'
 
 export type { ImportResult }
@@ -52,6 +53,9 @@ export async function importCsvFile(
     records: sortRecordsByDateDescending([...existing.records, ...detection.fresh]),
   }
 
+  const importedOriginals = rows.map((r) => r.parsed)
+  const orphaned = findOrphanedTransactions(finalMaster.records, importedOriginals)
+
   return {
     master: finalMaster,
     format,
@@ -59,5 +63,6 @@ export async function importCsvFile(
     skipped: merged.skipped.length,
     autoIgnored: detection.fresh.filter((r) => r.ignored).length,
     parseErrors,
+    orphaned,
   }
 }
