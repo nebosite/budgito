@@ -1,6 +1,8 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
+
+// Use eval to load electron module - prevents Vite from processing it
+const { app, BrowserWindow, dialog, ipcMain, Menu, shell } = eval('require')('electron')
 import type {
   Budget,
   DiscardChoice,
@@ -151,6 +153,30 @@ function buildMenu(getActiveWindow: () => BrowserWindow | null): void {
       ],
     },
   ]
+  if (process.env['ELECTRON_RENDERER_URL']) {
+    const devTools: Electron.MenuItemConstructorOptions = {
+      label: 'Developer',
+      submenu: [
+        {
+          label: 'Toggle Developer Tools',
+          accelerator: 'F12',
+          click: () => {
+            const win = getActiveWindow()
+            if (win) win.webContents.toggleDevTools()
+          },
+        },
+        {
+          label: 'Open Developer Tools',
+          accelerator: 'CmdOrCtrl+Shift+I',
+          click: () => {
+            const win = getActiveWindow()
+            if (win) win.webContents.openDevTools()
+          },
+        },
+      ],
+    }
+    template.push(devTools)
+  }
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
 }
 
@@ -340,16 +366,21 @@ app.whenReady().then(async () => {
   ipcMain.handle(
     'import-csv',
     async (_event, currentRecords: TransactionRecord[]): Promise<ImportResult | null> => {
-      const { canceled, filePaths } = await dialog.showOpenDialog({
-        title: 'Import CSV',
-        filters: [{ name: 'CSV Files', extensions: ['csv'] }],
-        properties: ['openFile', 'multiSelections'],
-      })
-      if (canceled || filePaths.length === 0) return null
-      const current: MasterFile = { version: 1, records: currentRecords }
-      const settings = await loadSettings(settingsFilePath())
-      const cutoff = settings.cutoffDate ?? defaultCutoffDate(new Date())
-      return importCsvFiles(filePaths, current, cutoff)
+      try {
+        const { canceled, filePaths } = await dialog.showOpenDialog({
+          title: 'Import CSV',
+          filters: [{ name: 'CSV Files', extensions: ['csv'] }],
+          properties: ['openFile', 'multiSelections'],
+        })
+        if (canceled || filePaths.length === 0) return null
+        const current: MasterFile = { version: 1, records: currentRecords }
+        const settings = await loadSettings(settingsFilePath())
+        const cutoff = settings.cutoffDate ?? defaultCutoffDate(new Date())
+        return await importCsvFiles(filePaths, current, cutoff)
+      } catch (e) {
+        console.error('Import failed:', e)
+        throw e
+      }
     },
   )
 
