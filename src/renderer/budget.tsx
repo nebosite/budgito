@@ -1621,7 +1621,8 @@ function BudgetGrid({
                           // Calculate monthly spend rate and project to 12 months
                           const spendRate = elapsedSpend / currentMonthIndex
                           const projectedSpend = spendRate * 12
-                          isPaceAlert = projectedSpend > budgeted && budgeted > 0
+                          // Spending is negative, so negate to compare magnitudes
+                          isPaceAlert = -projectedSpend > budgeted && budgeted > 0
                         }
 
                         return (
