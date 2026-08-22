@@ -1409,6 +1409,31 @@ function BudgetGrid({
   // every column.
   const colSpan = months.length + 4
 
+  // Calculate current month for on-pace overage detection
+  const currentMonthIndex = useMemo(() => {
+    const today = new Date()
+    const [startYear, startMonth] = budget.startMonth.split('-').map(Number)
+    const startDate = new Date(startYear, startMonth - 1, 1)
+
+    let monthsElapsed = 0
+    let checkDate = new Date(startDate)
+    while (checkDate <= today && monthsElapsed < 12) {
+      checkDate = new Date(checkDate.getFullYear(), checkDate.getMonth() + 1, 1)
+      if (checkDate <= today) monthsElapsed++
+    }
+    return monthsElapsed
+  }, [budget.startMonth])
+
+  // Identify top 10 budgeted rows in discretionary section
+  const top10BudgetedIndices = useMemo(() => {
+    const indices = budget.discretionary
+      .map((row, idx) => ({ idx, budgeted: row.budgeted ?? 0 }))
+      .sort((a, b) => b.budgeted - a.budgeted)
+      .slice(0, 10)
+      .map(x => x.idx)
+    return new Set(indices)
+  }, [budget.discretionary])
+
   function allowDrop(e: React.DragEvent): void {
     if (drag) e.preventDefault()
   }
@@ -1582,32 +1607,51 @@ function BudgetGrid({
                   </td>
                   {sec.id === 'discretionary' ? (
                     <>
-                      <td
-                        className={`budget-extra-col budget-remaining-cell${
-                          rowRemaining(row) < -1
-                            ? ' budget-remaining-overspent'
-                            : rowRemaining(row) > (row.budgeted ?? 0)
-                              ? ' budget-remaining-surplus'
-                              : rowRemaining(row) < 0
-                                ? ' budget-cell-negative'
-                                : ''
-                        }${
-                          rowRemaining(row) !== 0 ? ' budget-remaining-bold' : ''
-                        }`}
-                      >
-                        {formatBudgetAmount(rowRemaining(row))}
-                      </td>
-                      <BudgetedCell
-                        value={row.budgeted ?? 0}
-                        editing={
-                          editingBudgeted?.section === sec.id &&
-                          editingBudgeted.row === ri
+                      {(() => {
+                        const remaining = rowRemaining(row)
+                        const budgeted = row.budgeted ?? 0
+                        // Check if on pace to overage
+                        let isPaceAlert = false
+                        if (currentMonthIndex > 0) {
+                          const spending = rowTotal(row)
+                          const extrapolated = (spending / currentMonthIndex) * 12
+                          isPaceAlert = extrapolated > budgeted && budgeted > 0
                         }
-                        onStart={() => onStartEditBudgeted(sec.id, ri)}
-                        onCancel={onCancelEditBudgeted}
-                        onCommit={(v) => onCommitEditBudgeted(sec.id, ri, v)}
-                      />
+
+                        return (
+                          <td
+                            className={`budget-extra-col budget-remaining-cell${
+                              isPaceAlert
+                                ? ' budget-remaining-pace-alert'
+                                : remaining < -1
+                                  ? ' budget-remaining-overspent'
+                                  : remaining > budgeted
+                                    ? ' budget-remaining-surplus'
+                                    : remaining < 0
+                                      ? ' budget-cell-negative'
+                                      : ''
+                            }${
+                              remaining !== 0 ? ' budget-remaining-bold' : ''
+                            }`}
+                          >
+                            {formatBudgetAmount(remaining)}
+                          </td>
+                        )
+                      })()}
                     </>
+                  ) : null}
+                  {sec.id === 'discretionary' ? (
+                    <BudgetedCell
+                      value={row.budgeted ?? 0}
+                      isTopTen={top10BudgetedIndices.has(ri)}
+                      editing={
+                        editingBudgeted?.section === sec.id &&
+                        editingBudgeted.row === ri
+                      }
+                      onStart={() => onStartEditBudgeted(sec.id, ri)}
+                      onCancel={onCancelEditBudgeted}
+                      onCommit={(v) => onCommitEditBudgeted(sec.id, ri, v)}
+                    />
                   ) : (
                     <>
                       <td className="budget-extra-col" />
@@ -1856,6 +1900,7 @@ function BudgetCell({
 interface BudgetedCellProps {
   value: number
   editing: boolean
+  isTopTen: boolean
   onStart: () => void
   onCancel: () => void
   onCommit: (value: number) => void
@@ -1868,6 +1913,7 @@ interface BudgetedCellProps {
 function BudgetedCell({
   value,
   editing,
+  isTopTen,
   onStart,
   onCancel,
   onCommit,
@@ -1885,7 +1931,7 @@ function BudgetedCell({
 
   if (!editing) {
     return (
-      <td className="budget-extra-col budget-budgeted-cell" onClick={onStart}>
+      <td className={`budget-extra-col budget-budgeted-cell${isTopTen ? ' budget-budgeted-top-10' : ''}`} onClick={onStart}>
         {formatBudgetAmount(value)}
       </td>
     )

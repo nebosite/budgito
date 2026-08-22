@@ -257,6 +257,14 @@
   cursor: text;
 }
 
+/* Top 10 budgeted amounts: yellow highlight to draw attention to largest
+   spending categories in the budget. */
+.budget-budgeted-cell.budget-budgeted-top-10 {
+  background: #ffd966;
+  color: #333;
+  font-weight: 700;
+}
+
 /* Non-zero Remaining values render bold; zero values stay regular weight so
    the row reads quietly until there's something interesting to flag. */
 .budget-remaining-cell.budget-remaining-bold {
@@ -269,6 +277,14 @@
 .budget-extra-col.budget-remaining-overspent {
   background: #c00;
   color: #ff0;
+  font-weight: 700;
+}
+
+/* On-pace alert: if current spending rate continues, yearly total will exceed
+   budget. Red background to warn the user to adjust. */
+.budget-extra-col.budget-remaining-pace-alert {
+  background: #e74c3c;
+  color: #fff;
   font-weight: 700;
 }
 
