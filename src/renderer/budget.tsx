@@ -1628,10 +1628,10 @@ function BudgetGrid({
                         return (
                           <td
                             className={`budget-extra-col budget-remaining-cell${
-                              isPaceAlert
-                                ? ' budget-remaining-pace-alert'
-                                : remaining < -1
-                                  ? ' budget-remaining-overspent'
+                              remaining < -1
+                                ? ' budget-remaining-overspent'
+                                : isPaceAlert
+                                  ? ' budget-remaining-pace-alert'
                                   : remaining > budgeted
                                     ? ' budget-remaining-surplus'
                                     : remaining < 0

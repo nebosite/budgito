@@ -281,9 +281,9 @@
 }
 
 /* On-pace alert: if current spending rate continues, yearly total will exceed
-   budget. Red background to warn the user to adjust. */
+   budget. Orange background to warn the user to adjust spending. */
 .budget-extra-col.budget-remaining-pace-alert {
-  background: #e74c3c;
+  background: #f39c12;
   color: #fff;
   font-weight: 700;
 }
