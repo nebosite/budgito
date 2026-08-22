@@ -1613,9 +1613,15 @@ function BudgetGrid({
                         // Check if on pace to overage
                         let isPaceAlert = false
                         if (currentMonthIndex > 0) {
-                          const spending = rowTotal(row)
-                          const extrapolated = (spending / currentMonthIndex) * 12
-                          isPaceAlert = extrapolated > budgeted && budgeted > 0
+                          // Sum only the months that have elapsed
+                          let elapsedSpend = 0
+                          for (let i = 0; i < currentMonthIndex; i++) {
+                            elapsedSpend += row.amounts[i] ?? 0
+                          }
+                          // Calculate monthly spend rate and project to 12 months
+                          const spendRate = elapsedSpend / currentMonthIndex
+                          const projectedSpend = spendRate * 12
+                          isPaceAlert = projectedSpend > budgeted && budgeted > 0
                         }
 
                         return (
