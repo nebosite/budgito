@@ -1,21 +1,87 @@
 import { readFile } from 'fs/promises'
-import type { MasterFile, TransactionRecord } from '../shared/types'
+import type { MasterFile, MigrationResult, TransactionRecord } from '../shared/types'
+import { normalizeTransactionRecord } from '../shared/string-normalizer'
 import { saveWithBackup } from './atomic-write'
 
-const CURRENT_VERSION = 1
+const CURRENT_VERSION = 2
+
+export type { MigrationResult }
+
+/**
+ * Migrate a v1 master file to v2 by normalizing all string fields.
+ * Returns the migrated file and metrics showing what changed.
+ */
+function migrateV1ToV2(file: MasterFile): { file: MasterFile; result: MigrationResult } {
+  // Calculate baseline metrics
+  const accountsBefore = new Set<string>()
+  const merchantsBefore = new Set<string>()
+  let totalAmountBefore = 0
+  let stringsChanged = 0
+
+  for (const record of file.records) {
+    accountsBefore.add(record.original.account)
+    merchantsBefore.add(record.original.merchant)
+    totalAmountBefore += record.original.amount
+  }
+
+  // Normalize all records
+  const normalized = file.records.map((record) => {
+    const before = JSON.stringify(record)
+    const normalized = normalizeTransactionRecord(record)
+    const after = JSON.stringify(normalized)
+    if (before !== after) {
+      stringsChanged++
+    }
+    return normalized
+  })
+
+  // Calculate new metrics
+  const accountsAfter = new Set<string>()
+  const merchantsAfter = new Set<string>()
+  let totalAmountAfter = 0
+
+  for (const record of normalized) {
+    accountsAfter.add(record.original.account)
+    merchantsAfter.add(record.original.merchant)
+    totalAmountAfter += record.original.amount
+  }
+
+  return {
+    file: { ...file, version: CURRENT_VERSION, records: normalized },
+    result: {
+      wasMigrated: true,
+      recordsProcessed: file.records.length,
+      stringsChanged,
+      accountsCount: accountsAfter.size,
+      merchantsCount: merchantsAfter.size,
+      totalAmount: totalAmountAfter,
+      accountsCountBefore: accountsBefore.size,
+      merchantsCountBefore: merchantsBefore.size,
+      totalAmountBefore,
+    },
+  }
+}
 
 /**
  * Read the master file from disk. Returns an empty master if the file does
  * not exist (first-run case). Other I/O errors propagate. Throws with a
  * clear message if the file is present but unparseable or in the wrong shape.
+ *
+ * If the file is v1, auto-migrates to v2 and returns MigrationResult so the
+ * caller can show a dialog.
  */
-export async function loadMasterFile(path: string): Promise<MasterFile> {
+export async function loadMasterFile(
+  path: string,
+): Promise<{ file: MasterFile; migration: MigrationResult | null }> {
   let text: string
   try {
     text = await readFile(path, 'utf8')
   } catch (e) {
     if (isNodeFsError(e) && e.code === 'ENOENT') {
-      return { version: CURRENT_VERSION, records: [] }
+      return {
+        file: { version: CURRENT_VERSION, records: [] },
+        migration: null,
+      }
     }
     throw e
   }
@@ -31,12 +97,29 @@ export async function loadMasterFile(path: string): Promise<MasterFile> {
   if (!isMasterFileShape(parsed)) {
     throw new Error(`Master file at ${path} is not in the expected shape.`)
   }
-  if (parsed.version !== CURRENT_VERSION) {
+
+  const recordsWithFieldsDropped = parsed.records.map(dropRemovedFields)
+  const fileWithDroppedFields = { ...parsed, records: recordsWithFieldsDropped }
+
+  // Handle version mismatches
+  if (parsed.version < CURRENT_VERSION) {
+    // Migrate v1 to v2
+    if (parsed.version === 1) {
+      const { file, result } = migrateV1ToV2(fileWithDroppedFields)
+      return { file, migration: result }
+    }
+    throw new Error(
+      `Master file at ${path} has version ${parsed.version}; cannot migrate to version ${CURRENT_VERSION}.`,
+    )
+  }
+
+  if (parsed.version > CURRENT_VERSION) {
     throw new Error(
       `Master file at ${path} has version ${parsed.version}; this app expects version ${CURRENT_VERSION}.`,
     )
   }
-  return { ...parsed, records: parsed.records.map(dropRemovedFields) }
+
+  return { file: fileWithDroppedFields, migration: null }
 }
 
 /**

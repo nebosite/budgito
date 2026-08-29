@@ -7,6 +7,7 @@ import type {
   ImportResult,
   MasterFile,
   MenuCommand,
+  MigrationResult,
   Settings,
   TransactionRecord,
 } from '../shared/types'
@@ -47,6 +48,13 @@ const api: ElectronApi = {
     const listener = (): void => callback()
     ipcRenderer.on('app:close-request', listener)
     return () => ipcRenderer.off('app:close-request', listener)
+  },
+  onMigrationResult: (callback: (result: MigrationResult) => void): (() => void) => {
+    const listener = (_event: IpcRendererEvent, result: MigrationResult): void => {
+      callback(result)
+    }
+    ipcRenderer.on('migration:result', listener)
+    return () => ipcRenderer.off('migration:result', listener)
   },
   approveClose: (): void => {
     ipcRenderer.send('app:approve-close')

@@ -10,6 +10,7 @@ import type {
   OriginalTransaction,
   TransactionRecord,
 } from '../shared/types'
+import { normalizeOriginalTransaction } from '../shared/string-normalizer'
 import { sortRecordsByDateDescending } from '../shared/records'
 import { parseMonarchCsv } from './csv'
 import { looksLikeAmazonCsv, parseAmazonCsv } from './amazon'
@@ -77,11 +78,19 @@ async function importOneFile(
 
   const { rows: allRows, errors: parseErrors } = parsed
 
+  // Normalize all parsed transactions to handle special characters and encoding issues
+  const normalizedRows = allRows.map((row) => ({
+    ...row,
+    parsed: normalizeOriginalTransaction(row.parsed),
+  }))
+
   // Drop rows older than the cut-off before they enter the pipeline, so they
   // are never added, never counted as duplicates, and never seed orphan
   // detection.
-  const rows = cutoffDate ? allRows.filter((r) => r.parsed.date >= cutoffDate) : allRows
-  const skippedOld = allRows.length - rows.length
+  const rows = cutoffDate
+    ? normalizedRows.filter((r) => r.parsed.date >= cutoffDate)
+    : normalizedRows
+  const skippedOld = normalizedRows.length - rows.length
 
   const merged = mergeIntoMaster(existing, rows)
   const detection = detectTransfers(merged.added, existing.records)

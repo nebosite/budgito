@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   Budget,
   ImportResult,
+  MigrationResult,
   OrphanInfo,
   OriginalTransaction,
   TransactionOverrides,
@@ -16,6 +17,7 @@ import { defaultCutoffDate } from '../shared/cutoff'
 import { BudgetView, renameCategoryInBudget } from './budget'
 import { Grid } from './grid'
 import { HelpModal } from './help-modal'
+import { MigrationResultDialog } from './migration-result-dialog'
 import { NewTransactionDialog } from './new-transaction-dialog'
 import { OrphanedTransactionDialog } from './orphaned-transaction-dialog'
 import { ImportSummaryDialog } from './import-summary-dialog'
@@ -66,6 +68,8 @@ export default function App(): JSX.Element {
   const [sessionAddedKeys, setSessionAddedKeys] = useState<Set<string>>(
     () => new Set(),
   )
+  // Shown when a data migration occurs (e.g., v1 → v2 normalization)
+  const [migrationResult, setMigrationResult] = useState<MigrationResult | null>(null)
   const dirty =
     history.present !== savedRef || budgets !== savedBudgetsRef
 
@@ -151,6 +155,18 @@ export default function App(): JSX.Element {
     handleSaveAs,
     handleCloseRequest,
   }
+
+  // Set up listeners first, before any file loading happens
+  useEffect(() => {
+    const offMigration = window.api.onMigrationResult((result) => {
+      if (result && result.wasMigrated) {
+        setMigrationResult(result)
+      }
+    })
+    return () => {
+      offMigration()
+    }
+  }, [])
 
   useEffect(() => {
     const offMenu = window.api.onMenuCommand((command) => {
@@ -280,6 +296,17 @@ export default function App(): JSX.Element {
     if (choice === 'cancel') return false
     if (choice === 'save') return handleSave()
     return true
+  }
+
+  async function handleMigrationSave(): Promise<void> {
+    if (currentPath) {
+      await handleSave()
+    }
+    setMigrationResult(null)
+  }
+
+  function handleMigrationDismiss(): void {
+    setMigrationResult(null)
   }
 
   async function handleOpen(): Promise<void> {
@@ -774,6 +801,11 @@ export default function App(): JSX.Element {
           onDelete={handleOrphanDelete}
         />
       )}
+      <MigrationResultDialog
+        result={migrationResult}
+        onDismiss={handleMigrationDismiss}
+        onSave={handleMigrationSave}
+      />
     </div>
   )
 }

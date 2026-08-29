@@ -17,8 +17,8 @@ afterEach(async () => {
 
 describe('loadMasterFile', () => {
   it('returns an empty master when the file does not exist', async () => {
-    const f = await loadMasterFile(join(dir, 'master.json'))
-    expect(f).toEqual({ version: 1, records: [] })
+    const { file } = await loadMasterFile(join(dir, 'master.json'))
+    expect(file).toEqual({ version: 2, records: [] })
   })
 
   it('throws on malformed JSON', async () => {
@@ -67,11 +67,11 @@ describe('loadMasterFile', () => {
       'utf8',
     )
 
-    const loaded = await loadMasterFile(path)
-    expect(loaded.records[0].original).not.toHaveProperty('owner')
-    expect(loaded.records[0].overrides).not.toHaveProperty('owner')
+    const { file } = await loadMasterFile(path)
+    expect(file.records[0].original).not.toHaveProperty('owner')
+    expect(file.records[0].overrides).not.toHaveProperty('owner')
     // Other fields survive untouched.
-    expect(loaded.records[0].original.merchant).toBe('Netflix')
+    expect(file.records[0].original.merchant).toBe('Netflix')
   })
 })
 
@@ -96,15 +96,17 @@ describe('saveMasterFile + loadMasterFile', () => {
     const path = join(dir, 'master.json')
     const file: MasterFile = { version: 1, records: [sampleRecord] }
     await saveMasterFile(path, file)
-    const loaded = await loadMasterFile(path)
-    expect(loaded).toEqual(file)
+    const { file: loaded } = await loadMasterFile(path)
+    // v1 files are migrated to v2 on load
+    expect(loaded.records).toEqual(file.records)
+    expect(loaded.version).toBe(2)
   })
 
   it('creates missing parent directories', async () => {
     const path = join(dir, 'sub', 'nested', 'master.json')
-    await saveMasterFile(path, { version: 1, records: [] })
-    const loaded = await loadMasterFile(path)
-    expect(loaded).toEqual({ version: 1, records: [] })
+    await saveMasterFile(path, { version: 2, records: [] })
+    const { file } = await loadMasterFile(path)
+    expect(file).toEqual({ version: 2, records: [] })
   })
 
   it('leaves no stray .tmp file after a successful save', async () => {
@@ -117,9 +119,9 @@ describe('saveMasterFile + loadMasterFile', () => {
 
   it('overwrites an existing master atomically', async () => {
     const path = join(dir, 'master.json')
-    await saveMasterFile(path, { version: 1, records: [] })
-    await saveMasterFile(path, { version: 1, records: [sampleRecord] })
-    const loaded = await loadMasterFile(path)
-    expect(loaded.records).toHaveLength(1)
+    await saveMasterFile(path, { version: 2, records: [] })
+    await saveMasterFile(path, { version: 2, records: [sampleRecord] })
+    const { file } = await loadMasterFile(path)
+    expect(file.records).toHaveLength(1)
   })
 })

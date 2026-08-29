@@ -9,6 +9,7 @@ import type {
   ImportResult,
   MasterFile,
   MenuCommand,
+  MigrationResult,
   Settings,
   TransactionRecord,
 } from '../shared/types'
@@ -274,18 +275,25 @@ app.whenReady().then(async () => {
 
   ipcMain.handle(
     'file:read',
-    async (_event, path: string): Promise<MasterFile> => {
+    async (event, path: string): Promise<MasterFile> => {
       // Recompute every record's key from its parsed original fields, so old
       // files whose keys were the raw line text still dedupe against new
       // imports. New canonical keys persist the next time the user saves.
-      const file = await loadMasterFile(path)
-      return {
+      const { file, migration } = await loadMasterFile(path)
+      const result = {
         ...file,
         records: file.records.map((r) => ({
           ...r,
           key: canonicalRecordKey(r.original),
         })),
       }
+
+      // If a migration occurred, notify the renderer
+      if (migration) {
+        event.sender.send('migration:result', migration)
+      }
+
+      return result
     },
   )
 
@@ -298,7 +306,7 @@ app.whenReady().then(async () => {
       budgets: Budget[],
     ): Promise<void> => {
       const file: MasterFile = {
-        version: 1,
+        version: 2,
         records: sortRecordsByDateDescending(records),
         budgets,
       }

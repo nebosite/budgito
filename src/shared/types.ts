@@ -76,10 +76,23 @@ export interface Budget {
 
 /** Persisted shape of the master file. Versioned so schema changes can be migrated. */
 export interface MasterFile {
-  version: 1
+  version: 2
   records: TransactionRecord[]
   /** User-defined budgets. Absent in old files; treated as empty on load. */
   budgets?: Budget[]
+}
+
+/** Result of a data migration (e.g., v1 → v2 normalization). */
+export interface MigrationResult {
+  wasMigrated: boolean
+  recordsProcessed: number
+  stringsChanged: number
+  accountsCount: number
+  merchantsCount: number
+  totalAmount: number
+  accountsCountBefore: number
+  merchantsCountBefore: number
+  totalAmountBefore: number
 }
 
 /** A row that could not be parsed from a CSV import. */
@@ -212,6 +225,12 @@ export interface ElectronApi {
    * window to actually close. Returns an unsubscribe function.
    */
   onCloseRequest: (callback: () => void) => () => void
+  /**
+   * Subscribe to a migration result from the main process when a file is loaded
+   * and contains older data that needs normalization. Returns an unsubscribe
+   * function.
+   */
+  onMigrationResult: (callback: (result: MigrationResult) => void) => () => void
   /** Tell the main process it is now safe to close the window. */
   approveClose: () => void
 
