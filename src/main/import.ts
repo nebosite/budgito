@@ -95,10 +95,14 @@ async function importOneFile(
   const merged = mergeIntoMaster(existing, rows)
   const detection = detectTransfers(merged.added, existing.records)
 
-  // Calculate most common account
+  // Calculate most common account from all imported rows (including duplicates)
   const accountCounts = new Map<string, number>()
   for (const record of detection.fresh) {
     const account = record.original.account
+    accountCounts.set(account, (accountCounts.get(account) ?? 0) + 1)
+  }
+  for (const row of merged.skipped) {
+    const account = row.parsed.account
     accountCounts.set(account, (accountCounts.get(account) ?? 0) + 1)
   }
   const mostCommonAccount =
