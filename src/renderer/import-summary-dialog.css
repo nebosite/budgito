@@ -84,6 +84,11 @@
   white-space: nowrap;
 }
 
+.import-summary-table .col-account {
+  color: #555;
+  white-space: nowrap;
+}
+
 .import-summary-row-failed td {
   background: #fef2f2;
 }

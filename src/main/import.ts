@@ -95,6 +95,17 @@ async function importOneFile(
   const merged = mergeIntoMaster(existing, rows)
   const detection = detectTransfers(merged.added, existing.records)
 
+  // Calculate most common account
+  const accountCounts = new Map<string, number>()
+  for (const record of detection.fresh) {
+    const account = record.original.account
+    accountCounts.set(account, (accountCounts.get(account) ?? 0) + 1)
+  }
+  const mostCommonAccount =
+    accountCounts.size > 0
+      ? [...accountCounts.entries()].reduce((a, b) => (b[1] > a[1] ? b : a))[0] ?? null
+      : null
+
   const master: MasterFile = {
     version: existing.version,
     records: sortRecordsByDateDescending([...existing.records, ...detection.fresh]),
@@ -111,6 +122,7 @@ async function importOneFile(
       autoIgnored: detection.fresh.filter((r) => r.ignored).length,
       parseErrors,
       error: null,
+      mostCommonAccount,
     },
     importedRows: rows.map((r) => r.parsed),
   }
@@ -170,6 +182,7 @@ function failedFile(fileName: string, error: string): FileImportResult {
     autoIgnored: 0,
     parseErrors: [],
     error,
+    mostCommonAccount: null,
   }
 }
 

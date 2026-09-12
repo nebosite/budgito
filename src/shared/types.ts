@@ -135,6 +135,8 @@ export interface FileImportResult {
    * abort the remaining files in the batch.
    */
   error: string | null
+  /** Most common account in the imported transactions from this file. */
+  mostCommonAccount: string | null
 }
 
 /** Outcome of a CSV import (one or more files), returned to the renderer. */

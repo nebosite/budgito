@@ -62,6 +62,7 @@ export function ImportSummaryDialog({
               <tr>
                 <th className="col-file">File</th>
                 <th className="col-format">Format</th>
+                <th className="col-account">Account</th>
                 <th className="col-num">Added</th>
                 <th className="col-num">Skipped</th>
                 <th className="col-num">Too old</th>
@@ -76,13 +77,16 @@ export function ImportSummaryDialog({
                     {f.fileName}
                   </td>
                   {f.error ? (
-                    <td className="import-summary-error" colSpan={6}>
+                    <td className="import-summary-error" colSpan={7}>
                       Failed: {f.error}
                     </td>
                   ) : (
                     <>
                       <td className="col-format">
                         {f.format ? FORMAT_LABELS[f.format] : '—'}
+                      </td>
+                      <td className="col-account">
+                        {f.mostCommonAccount ? f.mostCommonAccount : '—'}
                       </td>
                       <td className="col-num">{f.added}</td>
                       <td className="col-num">{f.skipped}</td>
@@ -99,6 +103,7 @@ export function ImportSummaryDialog({
                 <tr className="import-summary-totals">
                   <td className="col-file">Total</td>
                   <td className="col-format" />
+                  <td className="col-account" />
                   <td className="col-num">{totals.added}</td>
                   <td className="col-num">{totals.skipped}</td>
                   <td className="col-num">{totals.skippedOld}</td>
