@@ -67,10 +67,14 @@ state machines.
 - **Main / shared / pure logic**: vitest in the default `node` environment.
   Examples: `csv.test.ts`, `merge.test.ts`, `sort.test.ts`, `filter.test.ts`,
   `virtual.test.ts`.
-- **React components**: vitest in `jsdom` with `@testing-library/react`. The
-  glob `src/renderer/**` is mapped to jsdom in `vitest.config.ts`; the global
-  setup (`src/test-setup.ts`) loads `@testing-library/jest-dom` matchers,
-  stubs `window.api` per test, and runs `cleanup()` between tests.
+- **React components**: vitest in `jsdom` with `@testing-library/react`. Every
+  component test must start with a `// @vitest-environment jsdom` docblock —
+  without it the file runs in `node` and fails on `document is not defined`.
+  (`environmentMatchGlobs` is not usable here: vitest resolves the pattern with
+  `path.resolve`, and the resulting Windows backslashes are read as escapes by
+  micromatch, so a path glob silently never matches.) The global setup
+  (`src/test-setup.ts`) loads `@testing-library/jest-dom` matchers, stubs
+  `window.api` per test, and runs `cleanup()` between tests.
 - **Where pure logic lives inside a component file**, export it so tests can
   exercise it directly (see `defaultSpendingWindow`, `monthsInWindow`, the
   budget `moveRow` / `updateCell` helpers). Add the component-level test

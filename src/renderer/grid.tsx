@@ -100,6 +100,11 @@ interface GridProps {
   sessionAddedKeys?: Set<string>
   /** Called whenever the filter changes, so other views can mirror it. */
   onFilterChange?: (filter: FilterCriteria) => void
+  /**
+   * Export the rows as currently displayed — filtered and sorted the way the
+   * user sees them. Omitted means this grid shows no export button.
+   */
+  onExport?: (records: TransactionRecord[]) => void
   onSetField: (
     index: number,
     field: EditableField,
@@ -120,6 +125,7 @@ export function Grid({
   showFilter = true,
   sessionAddedKeys,
   onFilterChange,
+  onExport,
   onSetField,
   onRemoveOverride,
   onToggleIgnored,
@@ -209,6 +215,12 @@ export function Grid({
   }, [records.length, resortKey, sort, filter, dateFrom, dateTo, amountMin, amountMax])
 
   const displayCount = order ? order.length : records.length
+
+  // The rows exactly as displayed, for export: filtered and sorted when either
+  // is active, otherwise every record in its natural order.
+  function displayedRecords(): TransactionRecord[] {
+    return order ? order.map((i) => records[i]) : [...records]
+  }
 
   // Mirror render-derived values so the window-level drag listeners can read
   // the latest without being re-subscribed on every render.
@@ -518,6 +530,16 @@ export function Grid({
               Clear filters
             </button>
           </>
+        )}
+        {onExport && (
+          <button
+            type="button"
+            className="filter-export-btn"
+            onClick={() => onExport(displayedRecords())}
+            title="Export the rows shown below to a CSV file"
+          >
+            Export CSV
+          </button>
         )}
         </div>
       )}

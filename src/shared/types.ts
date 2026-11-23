@@ -202,6 +202,11 @@ export interface ElectronApi {
     records: readonly TransactionRecord[],
     budgets: readonly Budget[],
   ) => Promise<void>
+  /**
+   * Show a save-as dialog for a CSV export and write `content` to the chosen
+   * path. Resolves to that path, or null if the dialog was cancelled.
+   */
+  exportCsv: (defaultName: string, content: string) => Promise<string | null>
   /** Show the unsaved-changes prompt (Save / Don't Save / Cancel). */
   confirmDiscard: () => Promise<DiscardChoice>
   /**

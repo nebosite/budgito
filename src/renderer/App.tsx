@@ -14,6 +14,7 @@ import {
   renameCategoryInRecords,
 } from '../shared/records'
 import { defaultCutoffDate } from '../shared/cutoff'
+import { defaultCsvName, recordsToCsv } from '../shared/csv-export'
 import { BudgetView, renameCategoryInBudget } from './budget'
 import { Grid } from './grid'
 import { HelpModal } from './help-modal'
@@ -459,6 +460,20 @@ export default function App(): JSX.Element {
     persistCategories([...categories, name])
   }
 
+  // The grid hands over its rows already filtered and sorted, so the exported
+  // file matches what the user is looking at.
+  async function handleExportCsv(toExport: TransactionRecord[]): Promise<void> {
+    try {
+      await window.api.exportCsv(defaultCsvName(), recordsToCsv(toExport))
+    } catch (err) {
+      await window.api.confirm({
+        message: 'Could not export the transactions.',
+        detail: err instanceof Error ? err.message : String(err),
+        primaryLabel: 'OK',
+      })
+    }
+  }
+
   function handleDeleteCategory(name: string): void {
     persistCategories(categories.filter((c) => c !== name))
   }
@@ -723,6 +738,7 @@ export default function App(): JSX.Element {
           active={view === 'transactions'}
           resortKey={resortKey}
           sessionAddedKeys={sessionAddedKeys}
+          onExport={handleExportCsv}
           onSetField={handleSetField}
           onRemoveOverride={handleRemoveOverride}
           onToggleIgnored={handleToggleIgnored}

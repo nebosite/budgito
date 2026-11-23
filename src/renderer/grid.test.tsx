@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -167,5 +168,63 @@ describe('Grid', () => {
     expect(screen.getByText('Netflix')).toBeInTheDocument()
     expect(screen.queryByText('Whole Foods')).not.toBeInTheDocument()
     expect(screen.queryByText('Hulu')).not.toBeInTheDocument()
+  })
+})
+
+describe('Grid CSV export', () => {
+  it('shows no export button when onExport is omitted', () => {
+    render(<Grid {...commonProps()} records={[rec({ merchant: 'Netflix' })]} />)
+    expect(screen.queryByRole('button', { name: 'Export CSV' })).toBeNull()
+  })
+
+  it('hands over every record when no filter is active', async () => {
+    const user = userEvent.setup()
+    const onExport = vi.fn()
+    render(
+      <Grid
+        {...commonProps()}
+        onExport={onExport}
+        records={[rec({ merchant: 'Netflix' }), rec({ merchant: 'Hulu' })]}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Export CSV' }))
+    expect(onExport).toHaveBeenCalledTimes(1)
+    expect(onExport.mock.calls[0][0].map((r: TransactionRecord) => r.original.merchant))
+      .toEqual(['Netflix', 'Hulu'])
+  })
+
+  it('hands over only the filtered rows', async () => {
+    const user = userEvent.setup()
+    const onExport = vi.fn()
+    render(
+      <Grid
+        {...commonProps()}
+        onExport={onExport}
+        records={[rec({ merchant: 'Netflix' }), rec({ merchant: 'Hulu' })]}
+      />,
+    )
+
+    await user.type(screen.getByLabelText('Filter transactions'), 'hulu')
+    await user.click(screen.getByRole('button', { name: 'Export CSV' }))
+    expect(onExport.mock.calls[0][0].map((r: TransactionRecord) => r.original.merchant))
+      .toEqual(['Hulu'])
+  })
+
+  it('hands over the rows in the sorted order shown', async () => {
+    const user = userEvent.setup()
+    const onExport = vi.fn()
+    render(
+      <Grid
+        {...commonProps()}
+        onExport={onExport}
+        records={[rec({ merchant: 'Netflix' }), rec({ merchant: 'Hulu' })]}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /^Sort by Merchant/ }))
+    await user.click(screen.getByRole('button', { name: 'Export CSV' }))
+    expect(onExport.mock.calls[0][0].map((r: TransactionRecord) => r.original.merchant))
+      .toEqual(['Hulu', 'Netflix'])
   })
 })

@@ -87,7 +87,8 @@
   margin-left: auto;
 }
 
-.filter-clear-btn {
+.filter-clear-btn,
+.filter-export-btn {
   flex: none;
   height: 28px;
   padding: 0 10px;
@@ -100,8 +101,14 @@
   cursor: pointer;
 }
 
-.filter-clear-btn:hover {
+.filter-clear-btn:hover,
+.filter-export-btn:hover {
   background: #e4e4e4;
+}
+
+/* Anchored to the right end of the filter bar, away from the inputs. */
+.filter-export-btn {
+  margin-left: auto;
 }
 
 .grid-header {

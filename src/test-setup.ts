@@ -26,6 +26,7 @@ if (inDom) {
       showSaveDialog: vi.fn(async () => null),
       readMasterFile: vi.fn(async () => ({ version: 2, records: [] })),
       writeMasterFile: vi.fn(async () => undefined),
+      exportCsv: vi.fn(async () => null),
       confirmDiscard: vi.fn(async () => 'cancel'),
       confirm: vi.fn(async () => true),
       readReadme: vi.fn(async () => '# Hello'),

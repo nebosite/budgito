@@ -28,6 +28,8 @@ const api: ElectronApi = {
     records: readonly TransactionRecord[],
     budgets: readonly Budget[],
   ): Promise<void> => ipcRenderer.invoke('file:write', path, records, budgets),
+  exportCsv: (defaultName: string, content: string): Promise<string | null> =>
+    ipcRenderer.invoke('file:export-csv', defaultName, content),
   confirmDiscard: (): Promise<DiscardChoice> =>
     ipcRenderer.invoke('dialog:confirm-discard'),
   confirm: (opts: {

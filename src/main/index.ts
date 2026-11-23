@@ -15,7 +15,7 @@ import type {
 } from '../shared/types'
 import { canonicalRecordKey, sortRecordsByDateDescending } from '../shared/records'
 import { defaultCutoffDate } from '../shared/cutoff'
-import { backupCurrent } from './atomic-write'
+import { backupCurrent, saveAtomic } from './atomic-write'
 import { importCsvFiles } from './import'
 import { loadMasterFile, saveMasterFile } from './master-file'
 import { loadSettings, saveSettings } from './settings-file'
@@ -25,6 +25,11 @@ const MIN_WINDOW = { width: 100, height: 100 }
 const RESIZE_DEBOUNCE_MS = 400
 const MASTER_FILE_FILTERS = [
   { name: 'Transaction Master', extensions: ['json'] },
+  { name: 'All Files', extensions: ['*'] },
+]
+
+const CSV_EXPORT_FILTERS = [
+  { name: 'CSV', extensions: ['csv'] },
   { name: 'All Files', extensions: ['*'] },
 ]
 
@@ -269,6 +274,26 @@ app.whenReady().then(async () => {
         ? await dialog.showSaveDialog(win, options)
         : await dialog.showSaveDialog(options)
       if (result.canceled || !result.filePath) return null
+      return result.filePath
+    },
+  )
+
+  ipcMain.handle(
+    'file:export-csv',
+    async (event, defaultName: string, content: string): Promise<string | null> => {
+      const win = BrowserWindow.fromWebContents(event.sender)
+      const options: Electron.SaveDialogOptions = {
+        title: 'Export Transactions to CSV',
+        filters: CSV_EXPORT_FILTERS,
+        defaultPath: defaultName,
+      }
+      const result = win
+        ? await dialog.showSaveDialog(win, options)
+        : await dialog.showSaveDialog(options)
+      if (result.canceled || !result.filePath) return null
+      // No backup: the export target is a file the user just named, not a
+      // canonical document whose prior version is worth preserving.
+      await saveAtomic(result.filePath, content)
       return result.filePath
     },
   )
